@@ -1,0 +1,8 @@
+**************************************************************************************************************
+ bicycle version ${project.version}                                                                         
+                                                                                                            
+ Copyright 2015                                                                                             
+ Daniel González-Peña, Higher Technical School of Computer Engineering, University of Vigo                  
+ Osvaldo Graña, Bioinformatics Unit (CNIO)                                                                  
+ Distributed under the terms of the GNU Leeser General Public License. (Free Software Foundation)           
+**************************************************************************************************************
