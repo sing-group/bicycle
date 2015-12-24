@@ -1,2 +1,2 @@
 #!/bin/bash
-java -jar ../bicycle-${project.version}.jar
+java -jar ../bicycle-${project.version}.jar "$@"
