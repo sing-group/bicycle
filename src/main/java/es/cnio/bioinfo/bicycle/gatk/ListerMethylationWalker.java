@@ -1,6 +1,6 @@
 /*
 
-Copyright 2012 Daniel Gonzalez Peña, Osvaldo Graña
+Copyright 2012 Daniel Gonzalez Pe��a, Osvaldo Gra��a
 
 
 This file is part of the bicycle Project. 
@@ -377,8 +377,8 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 		for (RodBinding<BEDFeature> binding: this.beds){
 			out.print("\t"+binding.getName());
 		}
-		out.println("STATUS");
-		out.print("\n");
+		out.println("\tSTATUS");
+		
 	}
 
 	private void writeMehylcytosinesRecord(PrintStream out, MethylationCall call,
@@ -404,7 +404,11 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 		out.println("##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">"); 
 		out.println("##INFO=<ID=CTDP,Number=1,Type=Integer,Description=\"CorT Depth\">"); 
 		out.println("##INFO=<ID=CD,Number=1,Type=Integer,Description=\"Cytosine Depth\">"); 
-		out.println("##INFO=<ID=PER,Number=1,Type=Float,Description=\"Methylation percentage\">"); 
+		
+		//modified (osvaldo, 3jan2016)
+		//out.println("##INFO=<ID=PER,Number=1,Type=Float,Description=\"Methylation percentage\">");		
+		out.println("##INFO=<ID=BS,Number=1,Type=Float,Description=\"Beta Score\">");
+		
 		out.println("##INFO=<ID=PU,Number=1,Type=Float,Description=\"Readed bases at this position\">");
 		out.println("##INFO=<ID=CO,Number=1,Type=Flag,Description=\"Corrected, i.e., this CG is derived from a non-GC to GC correction\">");
 		out.println("##INFO=<ID=AC,Number=1,Type=Flag,Description=\"Added by correction, i.e., this CG is added due to a correction from non-CG to CG in the opposite strand\">");
@@ -437,7 +441,10 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 		out.print("CTDP="+call.getCTdepth()+";");
 		out.print("CD="+call.getCytosines()+";");
 		
-		out.print("PER="+new DecimalFormat("###.##").format(100*(double)call.getCytosines()/(double)call.getDepth())+";");
+		//modified (osvaldo, 3jan2016)
+		//out.print("PER="+new DecimalFormat("###.##").format(100*(double)call.getCytosines()/(double)call.getDepth())+";");
+		out.print("BS="+new DecimalFormat("#.#######").format(call.getBetaScore())+";");
+		
 		out.print("PU="+call.getPileup()+";");
 		if (call.isCorrectedFromNonCG()){
 			out.print("CO;");
@@ -782,7 +789,11 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 			}
 			double pval = computePval(strand, context, error, mCCount, depth);
 			
-			MethylationCall call = new MethylationCall(alignmentContext.getContig(), alignmentContext.getPosition(), strand,  context, pval, depth, CTdepth, mCCount, pileupb.toString(), false, false, annotations); 
+			//added (osvaldo, 3jan2016)
+			double CRatio = (double) mCCount / (double) depth;
+			
+			//modified (osvaldo, 31dec2015): adds CRatio argument
+			MethylationCall call = new MethylationCall(alignmentContext.getContig(), alignmentContext.getPosition(), strand,  context, pval, depth, CTdepth, mCCount, pileupb.toString(), false, false, annotations, new Double(CRatio)); 
 			toret.add(call);
 			
 			//perform nonCG to CG correction
@@ -836,8 +847,9 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 						if (oppositeCRatio >= 0.2){
 							call.correctToCG();
 							
+							//modified (osvaldo, 31dec2015): adds oppositeCRatio argument
 							//add another one to the opposite strand
-							MethylationCall oppositeCall = new MethylationCall(alignmentContext.getContig(), downstreamPosition, oppositeStrand, Context.CG, computePval(oppositeStrand, Context.CG, this.error, oppositeCCount, oppositeDepth), oppositeDepth, oppositeCTdepth, oppositeCCount, oppositePileup.toString(), false, true, annotations);
+							MethylationCall oppositeCall = new MethylationCall(alignmentContext.getContig(), downstreamPosition, oppositeStrand, Context.CG, computePval(oppositeStrand, Context.CG, this.error, oppositeCCount, oppositeDepth), oppositeDepth, oppositeCTdepth, oppositeCCount, oppositePileup.toString(), false, true, annotations, oppositeCRatio);
 							if (downstreamPosition< alignmentContext.getPosition()){
 								toret.add(0, oppositeCall); //prepend
 							}else{

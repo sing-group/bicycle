@@ -1,6 +1,6 @@
 /*
 
-Copyright 2012 Daniel Gonzalez Peña, Osvaldo Graña
+Copyright 2012 Daniel Gonzalez Pe��a, Osvaldo Gra��a
 
 
 This file is part of the bicycle Project. 
@@ -38,10 +38,11 @@ public class MethylationCall {
 	private boolean addedByCorrection;
 	private double cutOff=-1;
 	private List<String> annotations;
+	private double betaScore;
 	
 	
 	public MethylationCall(String contig, long position, Strand strand, Context context, double pval,
-			int depth, int CTdepth, int cytosines, String pileup, boolean correctedFromNonCG, boolean addedByCorrection, List<String> annotations) {
+			int depth, int CTdepth, int cytosines, String pileup, boolean correctedFromNonCG, boolean addedByCorrection, List<String> annotations, double betaScore) {
 		super();
 		this.contig = contig;
 		this.position = position;
@@ -57,6 +58,7 @@ public class MethylationCall {
 		
 		this.addedByCorrection = addedByCorrection;
 		this.annotations = annotations;
+		this.betaScore=betaScore;
 	}
 
 	
@@ -92,18 +94,14 @@ public class MethylationCall {
 		this.context = Context.CG;
 		this.correctedFromNonCG = true;
 	}
-	
-	
+		
 	public boolean isCorrectedFromNonCG() {
 		return correctedFromNonCG;
 	}
 
-
-
 	public boolean isAddedByCorrection() {
 		return addedByCorrection;
 	}
-
 
 	public void setCutOff(double cutOff){
 		this.cutOff = cutOff;
@@ -113,7 +111,6 @@ public class MethylationCall {
 		return this.pval < this.cutOff;
 	}
 	
-
 	public double getCutOff() {
 		return cutOff;
 	}
@@ -125,43 +122,98 @@ public class MethylationCall {
 	public int getCTdepth() {
 		return CTdepth;
 	}
+
+	//added (osvaldo, 3jan2016)	
+	public double getBetaScore() {
+		return betaScore;
+	}
+	
 	public static String getMarshallHeader(){
 		String sep="\t";
-		return "#SEQUENCE"+sep+"POS"+sep+"STRAND"+sep+"CONTEXT"+sep+"DEPTH"+sep+"CT.DEPTH"+sep+"CYTOSINE.COUNT"+sep+"PILEUP"+sep+"PVAL"+sep+"CORRECTED_FROM_NON_CG"+sep+"ADDED_BY_CORRECTION";
+        //return "#SEQUENCE"+sep+"POS"+sep+"STRAND"+sep+"CONTEXT"+sep+"DEPTH"+sep+"CT.DEPTH"+sep+"CYTOSINE.COUNT"+sep+"PILEUP"+sep+"PVAL"+sep+"CORRECTED_FROM_NON_CG"+sep+"ADDED_BY_CORRECTION";
+		        
+		//modified (osvaldo, 31dec2015)
+        return "#SEQUENCE"+sep+"POS"+sep+"STRAND"+sep+"CONTEXT"+sep+"DEPTH"+sep+"CT.DEPTH"+sep+"CYTOSINE.COUNT"+sep+"BETA.SCORE"+sep+"PILEUP"+sep+"PVAL"+sep+"CORRECTED_FROM_NON_CG"+sep+"ADDED_BY_CORRECTION";
+        
 	}
 
 	@Override
 	public String toString() {
-		return this.getContig()+"\t"+this.getPosition()+"\t"+this.getStrand()+"\t"+this.getContext()+"\t"+this.getDepth()+"\t"+this.getCTdepth()+"\t"+this.getCytosines()+"\t"+this.getPileup()+"\t"+this.getPval()+"\t"+this.correctedFromNonCG+"\t"+this.addedByCorrection;
+		return this.getContig()+"\t"+this.getPosition()+"\t"+this.getStrand()+"\t"+this.getContext()+"\t"+this.getDepth()+"\t"+this.getCTdepth()+"\t"+this.getCytosines()+"\t"+this.getPileup()+"\t"+this.getPval()+"\t"+this.correctedFromNonCG+"\t"+this.addedByCorrection;	               
 	}
+	
 	public static MethylationCall unmarshall(String line){
 		
 		String[] tokens = line.split("\t");
 		List<String> annotations=new LinkedList<String>();
-		if (tokens.length>=11)
-			for (int i = 11;i<tokens.length;i++){
+		//if (tokens.length>=11)
+		
+		//modified (osvaldo, 3jan2016): required after adding betaScore in between (increments one position)
+		int tokenPos=12;
+		if (tokens.length>=tokenPos)	
+			for (int i = tokenPos;i<tokens.length;i++){
 				annotations.add(tokens[i]);
 			}
 			
 		
-		return new MethylationCall(tokens[0], Long.parseLong(tokens[1]), Strand.valueOf(tokens[2]), Context.valueOf(tokens[3]), Double.parseDouble(tokens[8]), Integer.parseInt(tokens[4]), Integer.parseInt(tokens[5]), Integer.parseInt(tokens[6]), tokens[7], Boolean.valueOf(tokens[9]), Boolean.valueOf(tokens[10]), annotations );
+		//return new MethylationCall(tokens[0], Long.parseLong(tokens[1]), Strand.valueOf(tokens[2]), Context.valueOf(tokens[3]), Double.parseDouble(tokens[8]), Integer.parseInt(tokens[4]), Integer.parseInt(tokens[5]), Integer.parseInt(tokens[6]), tokens[7], Boolean.valueOf(tokens[9]), Boolean.valueOf(tokens[10]), annotations );
+		
+		//modified (osvaldo, 31dec2015)
+		return new MethylationCall(tokens[0], Long.parseLong(tokens[1]), Strand.valueOf(tokens[2]), Context.valueOf(tokens[3]), Double.parseDouble(tokens[9]), Integer.parseInt(tokens[4]), Integer.parseInt(tokens[5]), Integer.parseInt(tokens[6]), tokens[8], Boolean.valueOf(tokens[10]), Boolean.valueOf(tokens[11]), annotations, Double.parseDouble(tokens[7]) );
 	}
+	
 	public List<String> getAnnotations() {
 		return annotations;
 	}
 	
 	public String marshall(){
-		String annotations="";
-		for (String annotation: this.annotations){			
-			annotations+="\t"+annotation;
-		}
-		return this.getContig()+"\t"+this.getPosition()+"\t"+this.getStrand()+"\t"+this.getContext()+"\t"+this.getDepth()+"\t"+this.getCTdepth()+"\t"+this.getCytosines()+"\t"+this.getPileup()+"\t"+this.getPval()+"\t"+this.correctedFromNonCG+"\t"+this.addedByCorrection+annotations;
+/*		String annotations="";
+        for (String annotation: this.annotations){           
+            annotations+="\t"+annotation;
+        }
+       
+        return this.getContig()+"\t"+this.getPosition()+"\t"+this.getStrand()+"\t"+this.getContext()+"\t"+this.getDepth()+"\t"+this.getCTdepth()+"\t"+this.getCytosines()+"\t"+this.getPileup()+"\t"+this.getPval()+"\t"+this.correctedFromNonCG+"\t"+this.addedByCorrection+annotations;
+*/
+       
+        //modified (osvaldo, 31dec2015)
+		//this method writes in '*methylation' files
+        StringBuffer annotations=new StringBuffer();
+        for (String annotation: this.annotations){           
+            annotations.append("\t").append(annotation);
+        }       
+
+        StringBuffer sb=new StringBuffer();
+        sb.append(this.getContig());
+        sb.append("\t");
+        sb.append(this.getPosition());
+        sb.append("\t");
+        sb.append(this.getStrand());
+        sb.append("\t");
+        sb.append(this.getContext());
+        sb.append("\t");
+        sb.append(this.getDepth());
+        sb.append("\t");
+        sb.append(this.getCTdepth());
+        sb.append("\t");
+        sb.append(this.getCytosines());
+        sb.append("\t");       
+        sb.append(this.getBetaScore());
+        sb.append("\t");
+        sb.append(this.getPileup());
+        sb.append("\t");
+        sb.append(this.getPval());
+        sb.append("\t");
+        sb.append(this.correctedFromNonCG);
+        sb.append("\t");
+        sb.append(this.addedByCorrection);
+        sb.append(annotations);
+               
+        return sb.toString();
 	}
+	
 	public void marshall(PrintStream out){
 		out.print(marshall());
 	}
-	
-
 	
 	
 }
