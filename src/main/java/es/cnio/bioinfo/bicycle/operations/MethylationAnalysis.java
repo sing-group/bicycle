@@ -1,6 +1,6 @@
 /*
 
-Copyright 2012 Daniel Gonzalez Peña, Osvaldo Graña
+Copyright 2012 Daniel Gonzalez Pe��a, Osvaldo Gra��a
 
 
 This file is part of the bicycle Project. 
@@ -128,32 +128,32 @@ public class MethylationAnalysis {
 			double crickError,
 			List<File> bedFiles) throws IOException, InterruptedException{
 		
-		BowtieAlignment ba = new BowtieAlignment(this.project);
-		File samFileCT = ba.getAlignmentOutputFile(Strand.WATSON, sample, reference);
-		File samFileGA = ba.getAlignmentOutputFile(Strand.CRICK, sample, reference);
-		File fasta = reference.getReferenceFile();
-	
-		File sortedCT = new File(samFileCT.getAbsolutePath() + ".sorted.sam");
+			BowtieAlignment ba = new BowtieAlignment(this.project);
+			File samFileCT = ba.getAlignmentOutputFile(Strand.WATSON, sample, reference);
+			File samFileGA = ba.getAlignmentOutputFile(Strand.CRICK, sample, reference);
+			File fasta = reference.getReferenceFile();
 		
-		sortSAM(samFileCT, sortedCT);
-		File outputBamFileCT = buildBAMAndIndex(sortedCT, this.project.getSamtoolsDirectory());
+			File sortedCT = new File(samFileCT.getAbsolutePath() + ".sorted.sam");
+			
+			sortSAM(samFileCT, sortedCT);
+			File outputBamFileCT = buildBAMAndIndex(sortedCT, this.project.getSamtoolsDirectory());
+			
+			File sortedGA = new File(samFileGA.getAbsolutePath() + ".sorted.sam");
+			sortSAM(samFileGA, sortedGA);
+			File outputBamFileGA = buildBAMAndIndex(sortedGA, this.project.getSamtoolsDirectory());
+			
+			RuntimeMXBean runtimemxBean = ManagementFactory.getRuntimeMXBean();
 		
-		File sortedGA = new File(samFileGA.getAbsolutePath() + ".sorted.sam");
-		sortSAM(samFileGA, sortedGA);
-		File outputBamFileGA = buildBAMAndIndex(sortedGA, this.project.getSamtoolsDirectory());
-		
-		RuntimeMXBean runtimemxBean = ManagementFactory.getRuntimeMXBean();
-	
-		//String command = "java -Xmx1024M -cp "+runtimemxBean.getClassPath()+" org.broadinstitute.sting.gatk.CommandLineGATK ";
-		String command = "-T ListerMethylation -I "+outputBamFileCT+" -I "+outputBamFileGA+" -R "+fasta+" -nt "+nThreads+" --outdir "+project.getOutputDirectory()+" --fdr "+fdr;
-		
-		command+=" --methylcytosinesfile "+getMethylcytosinesFile(reference, sample).getAbsolutePath();
-		command+=" --methylcytosinesvcffile "+getMethylcytosinesVCFFile(reference, sample).getAbsolutePath();
-		command+=" --summaryfile "+getSummaryFile(reference, sample).getAbsolutePath();
-		command+=" --methylationwatsonfile "+getMethylationFile(Strand.WATSON, reference, sample).getAbsolutePath();
-		command+=" --methylationcrickfile "+getMethylationFile(Strand.CRICK, reference, sample).getAbsolutePath();
-		if (removeClonal){
-			command+=" --removeclonal";
+			//String command = "java -Xmx1024M -cp "+runtimemxBean.getClassPath()+" org.broadinstitute.sting.gatk.CommandLineGATK ";
+			String command = "-T ListerMethylation -I "+outputBamFileCT+" -I "+outputBamFileGA+" -R "+fasta+" -nt "+nThreads+" --outdir "+project.getOutputDirectory()+" --fdr "+fdr;
+			
+			command+=" --methylcytosinesfile "+getMethylcytosinesFile(reference, sample).getAbsolutePath();
+			command+=" --methylcytosinesvcffile "+getMethylcytosinesVCFFile(reference, sample).getAbsolutePath();
+			command+=" --summaryfile "+getSummaryFile(reference, sample).getAbsolutePath();
+			command+=" --methylationwatsonfile "+getMethylationFile(Strand.WATSON, reference, sample).getAbsolutePath();
+			command+=" --methylationcrickfile "+getMethylationFile(Strand.CRICK, reference, sample).getAbsolutePath();
+			if (removeClonal){
+				command+=" --removeclonal";
 		}
 		
 		if (bedFiles!=null) for (File bedfile : bedFiles){
