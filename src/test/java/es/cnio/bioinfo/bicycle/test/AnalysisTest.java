@@ -177,13 +177,13 @@ public class AnalysisTest {
 					System.err.println("====METHYLATION-WATSON=====");
 					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)));
 					//trim, this line must have depth 4, not 5 due to trimming...
-					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)).indexOf("chr10\t59\tWATSON\tCG\t4\t4\t4\tCCCC")!=-1);
+					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)).indexOf("chr10\t59\tWATSON\tCG\t4\t4\t4\t1.0\tCCCC")!=-1);
 					System.err.println("===========================");
 
 					System.err.println("====METHYLATION-CRICK=====");
 					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)));
 					//trim test, the following line must be missing
-					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)).indexOf("chr10\t16\tCRICK\tCHG\t1\t1\t1\tG\t0.0\tfalse\tfalse")==-1);
+					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)).indexOf("chr10\t16\tCRICK\tCHG\t1\t1\t1\t1.0\tG\t0.0\tfalse\tfalse")==-1);
 					System.err.println("===========================");
 					
 					
@@ -248,7 +248,7 @@ public class AnalysisTest {
 
 					System.err.println("====METHYLATION-CRICK=====");
 					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)));
-					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)).indexOf("chr10\t16\tCRICK\tCHG\t1\t1\t1\tG\t0.0\tfalse\tfalse")!=-1);
+					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)).indexOf("chr10\t16\tCRICK\tCHG\t1\t1\t1\t1.0\tG\t0.0\tfalse\tfalse")!=-1);
 					System.err.println("===========================");
 					
 					
@@ -371,7 +371,7 @@ public class AnalysisTest {
 					
 					System.err.println("====METHYLATION-WATSON=====");
 					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)));
-					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)).indexOf("chr10\t59\tWATSON\tCG\t5\t5\t5\tCCCCC")!=-1);
+					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)).indexOf("chr10\t59\tWATSON\tCG\t5\t5\t5\t1.0\tCCCCC")!=-1);
 					
 					System.err.println("===========================");
 
