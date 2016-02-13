@@ -55,7 +55,7 @@ public class PairedEndAnalysisTest {
 				new File(Utils.getReferenceDirectory()), 
 				new File(Utils.getPairedEndReadsDirectory()), 
 				new File(Utils.getBowtiePath()),
-				new File(Utils.getSamtoolsPath()), true, "-1.fastq");
+				new File(Utils.getSamtoolsPath()), true, true, "-1.fastq");
 		
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 		BowtieAlignment ba = new BowtieAlignment(p);
@@ -131,7 +131,7 @@ public class PairedEndAnalysisTest {
 					
 				}
 			}
-		}finally{
+		} finally {
 			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 	}

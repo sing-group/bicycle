@@ -140,6 +140,45 @@
 						<java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
 					</systemPropertyVariables>
 					<useSystemClassLoader>false</useSystemClassLoader>
+					<excludes>
+						<exclude>**/testsimulated/*Test.java</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+			   <execution>
+                        <id>simulation-test</id>
+                        <phase>test</phase>
+                        <goals>
+                        	<goal>test</goal>
+                        </goals>
+                        <configuration>
+                        	<useSystemClassLoader>false</useSystemClassLoader>
+                        	<systemPropertyVariables>
+								<java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+							</systemPropertyVariables>
+                        	<skip>${skipSimulatedTests}</skip>                        
+                            <excludes>
+                                <exclude>**/test/*Test.java</exclude>
+                            </excludes>
+                            <includes>
+                                <include>**/testsimulated/*Test.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                 </executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.5</version>
+				<configuration>
+					<systemPropertyVariables>
+						<java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+					</systemPropertyVariables>
+					<useSystemClassLoader>false</useSystemClassLoader>
+					<excludes>
+						<exclude>**/testsimulated/*Test.java</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -195,10 +234,11 @@
 							<goal>wget</goal>
 						</goals>
 						<configuration>
-							<url>http://sing.ei.uvigo.es/bicycle/downloads/sample-test-data-1.0.zip</url>
+							<skip>${skipSimulatedTests}</skip>
+							<url>http://sing.ei.uvigo.es/bicycle/downloads/sample-test-data-1.5.zip</url>
 							<unpack>true</unpack>
 							<outputDirectory>${project.build.directory}/test-classes</outputDirectory>
-							<md5>a67e4b21abe16456c91602cc13ffcc10</md5>
+							<md5>57eee2ba5f0c5ca120c1060366039fad</md5>
 						</configuration>
 					</execution>
 				</executions>

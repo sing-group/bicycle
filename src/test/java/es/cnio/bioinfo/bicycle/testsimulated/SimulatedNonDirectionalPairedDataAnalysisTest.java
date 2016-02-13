@@ -40,7 +40,7 @@ import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
 import es.cnio.bioinfo.bicycle.operations.SampleBisulfitation;
 import es.cnio.bioinfo.bicycle.test.Utils;
 
-public class SimulatedDataAnalysisTest {
+public class SimulatedNonDirectionalPairedDataAnalysisTest {
 
 	
 	
@@ -51,10 +51,9 @@ public class SimulatedDataAnalysisTest {
 		Project p = Project.buildNewProject(
 				tempDir,
 				new File(Utils.getSimulatedDataReferenceDirectory()), 
-				new File(Utils.getSimulatedDataReadsDirectory()), 
+				new File(Utils.getSimulatedNonDirectionalPairedDataReadsDirectory()), 
 				new File(Utils.getBowtiePath()),
-				new File(Utils.getSamtoolsPath()),
-				true);
+				new File(Utils.getSamtoolsPath()), false, true, "_1.fastq");
 		
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 		BowtieAlignment ba = new BowtieAlignment(p);
@@ -68,7 +67,7 @@ public class SimulatedDataAnalysisTest {
 			SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);
 			for (Reference reference : p.getReferences()){
-				ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
+				ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3, 0, 500);
 			}
 		}
 			
@@ -87,7 +86,7 @@ public class SimulatedDataAnalysisTest {
 			for (Sample sample: project.getSamples()){
 				for (Reference reference : project.getReferences()){
 					
-					ma.analyzeWithErrorFromControlGenome(
+					ma.analyzeWithFixedErrorRate(
 							reference, 
 							sample, 
 							true, 
@@ -100,7 +99,7 @@ public class SimulatedDataAnalysisTest {
 							0.01, 
 							4,
 							new ArrayList<File>(), 
-							"Ecoli");
+							0.0, 0.0);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 					
 
@@ -108,13 +107,13 @@ public class SimulatedDataAnalysisTest {
 					
 					System.err.println("==========SUMMARY==========");
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
-					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.29")!=-1); //assert the 30% methylation level on CG
+					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.30")!=-1); //assert the 30% methylation level on CG
 					
 					System.err.println("===========================");
 					
 				}
 			}
-		} finally{
+		} finally {
 			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 		

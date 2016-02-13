@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import org.apache.commons.math.stat.inference.TestUtils;
 import org.junit.Test;
 
 import es.cnio.bioinfo.bicycle.Project;
@@ -40,7 +41,7 @@ import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
 import es.cnio.bioinfo.bicycle.operations.SampleBisulfitation;
 import es.cnio.bioinfo.bicycle.test.Utils;
 
-public class SimulatedDataAnalysisTestPaired {
+public class SimulatedNonDirectionalDataAnalysisTest {
 
 	
 	
@@ -51,9 +52,10 @@ public class SimulatedDataAnalysisTestPaired {
 		Project p = Project.buildNewProject(
 				tempDir,
 				new File(Utils.getSimulatedDataReferenceDirectory()), 
-				new File(Utils.getSimulatedDataPairedReadsDirectory()), 
+				new File(Utils.getSimulatedNonDirectionalDataReadsDirectory()), 
 				new File(Utils.getBowtiePath()),
-				new File(Utils.getSamtoolsPath()),true, "_1.fastq");
+				new File(Utils.getSamtoolsPath()),
+				true);
 		
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 		BowtieAlignment ba = new BowtieAlignment(p);
@@ -67,7 +69,7 @@ public class SimulatedDataAnalysisTestPaired {
 			SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);
 			for (Reference reference : p.getReferences()){
-				ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3, 0, 500);
+				ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
 			}
 		}
 			
@@ -86,7 +88,7 @@ public class SimulatedDataAnalysisTestPaired {
 			for (Sample sample: project.getSamples()){
 				for (Reference reference : project.getReferences()){
 					
-					ma.analyzeWithErrorFromControlGenome(
+					ma.analyzeWithFixedErrorRate(
 							reference, 
 							sample, 
 							true, 
@@ -99,7 +101,7 @@ public class SimulatedDataAnalysisTestPaired {
 							0.01, 
 							4,
 							new ArrayList<File>(), 
-							"Ecoli");
+							0.0, 0.0);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 					
 
@@ -107,14 +109,14 @@ public class SimulatedDataAnalysisTestPaired {
 					
 					System.err.println("==========SUMMARY==========");
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
-					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.30")!=-1); //assert the 30% methylation level on CG
+					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.29")!=-1); //assert the 30% methylation level on CG
 					
 					System.err.println("===========================");
 					
 				}
 			}
-		}finally{
-			Utils.deleteDir(project.getProjectDirectory());
+		} finally {
+			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 		
 	}

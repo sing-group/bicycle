@@ -22,6 +22,8 @@ package es.cnio.bioinfo.bicycle.operations;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 
@@ -42,15 +44,22 @@ class PairedEndBowtieReader extends BufferedReader{
 
 	private BufferedReader mate1;
 	private BufferedReader mate2;
-	private Strand strand;
-	public PairedEndBowtieReader(BufferedReader mate1fastq, BufferedReader mate2fastq, Strand strand) {
+	private boolean isDirectional;
+	public PairedEndBowtieReader(BufferedReader mate1fastq, BufferedReader mate2fastq, boolean isDirectional) {
 		super(mate1fastq); //we must call super constructor, but this is only to avoid npe
 		this.mate1 = mate1fastq;
 		this.mate2 = mate2fastq;
-		this.strand = strand;
+		this.isDirectional = isDirectional;
 	}
+	
+	private Queue<String> nextString = new LinkedList<String>();
+	
 	@Override
 	public String readLine() throws IOException {
+		if (!nextString.isEmpty()) {
+			return nextString.poll();
+		}
+		
 		//try to read four lines from each stream
 		String m1ReadName = mate1.readLine();
 		if (m1ReadName == null) return null;
@@ -82,108 +91,44 @@ class PairedEndBowtieReader extends BufferedReader{
 		
 		StringBuilder toretb = new StringBuilder();
 		
-		if (this.strand == Strand.WATSON){
-			toretb.append(m1NameTokens[0].substring(1))./*append("WATSON").*/
+		toretb.append(m1NameTokens[0].substring(1)).
+		append("||").
+		append(m1NameTokens[1]). 
+		append("||").
+		//append(getReverseComplementary(m2NameTokens[1])).
+		append(m2NameTokens[1]).
+		append("\t").
+		append(m1Sequence). 
+		append("\t").
+		append(m1Qual). 
+		append("\t").
+		append(m2NameTokens[1].replaceAll("G", "A")). 
+		
+		append("\t").
+		append(m2Qual);
+		
+		if (!this.isDirectional) {
+			StringBuilder nonDirectionalSB = new StringBuilder();
+			nonDirectionalSB.append(m1NameTokens[0].substring(1)).
 			append("||").
 			append(m1NameTokens[1]). 
 			append("||").
 			//append(getReverseComplementary(m2NameTokens[1])).
 			append(m2NameTokens[1]).
 			append("\t").
-			append(m1Sequence). 
+			append(m1NameTokens[1].replaceAll("G", "A")).
 			append("\t").
 			append(m1Qual). 
 			append("\t").
-			//append(getReverseComplementary(m2NameTokens[1]).replaceAll("C", "T")). //we are performing here the in-silico bisulfitation :-(
-			append(m2NameTokens[1].replaceAll("G", "A")). //we are performing here the in-silico bisulfitation :-(
+			append(m2Sequence).
 			
 			append("\t").
-//			append(reverse(m2Qual));
 			append(m2Qual);
 			
-			System.err.println("a WATSON input: "+toretb.toString());
-		}else{	
-			
-			toretb.append(m1NameTokens[0].substring(1))./*append("CRICK").*/
-			append("||").
-			append(m1NameTokens[1]). 
-			append("||").
-//			append(getReverseComplementary(m2NameTokens[1])).
-			append(m2NameTokens[1]).
-			append("\t").
-			append(m1Sequence). 
-			append("\t").
-			append(m1Qual). 
-			append("\t").
-//			append(getReverseComplementary(m2NameTokens[1]).replaceAll("C", "T")). //we are performing here the in-silico bisulfitation :-(
-			append(m2NameTokens[1].replaceAll("G", "A")). //we are performing here the in-silico bisulfitation :-(
-			append("\t").
-//			append(reverse(m2Qual));
-			append(m2Qual);
-			System.err.println("a CRICK input: "+toretb.toString());
+			nextString.offer(nonDirectionalSB.toString());
 		}
+		
 		return toretb.toString();
 	}
 	
-	private String reverse(String s){
-		StringBuilder builder = new StringBuilder();
-		for (int i = s.length()-1; i>=0; i--){
-			builder.append(s.charAt(i));
-		}
-		return builder.toString();
-	}
-	/*
-	private int lineno=0;
-	@Override
-	public String readLine() throws IOException {
-		String toret = null;
-		
-		if (lineno < 4){
-			//mate 1
-			toret = mate1.readLine();
-						
-		}else{
-			//mate2
-			toret = mate2.readLine();
-			
-		}
-		if (lineno==8){
-			lineno=0;
-		}
-
-		if (toret !=null){
-			if (lineno==0){
-				toret=toret.replaceAll("[|][|]", "//1||");
-			}else if (lineno==4){
-				toret=toret.replaceAll("[|][|]", "//2||");
-			}
-
-			lineno++;
-		}
-		return toret;
-	}
-	
-	*/
-	private String getReverseComplementary(String sequence){
-		StringBuilder complementaria=new StringBuilder("");
-		
-		// 1ero construyo la complementaria
-		for(int i=0;i<sequence.length();i++){
-				switch(sequence.charAt(i)){
-				case 'A': complementaria.append("T"); break;
-				case 'T': complementaria.append("A"); break;
-				case 'C': complementaria.append("G"); break;
-				case 'G': complementaria.append("C"); break;
-				default: complementaria.append(sequence.charAt(i));
-			}
-		}
-		
-		//ahora la reversa
-		StringBuilder reversa=new StringBuilder("");
-		for(int i=complementaria.length()-1;i>-1;i--){
-			reversa.append(complementaria.charAt(i));				
-		}
-
-		return(reversa.toString());
-	}
 }

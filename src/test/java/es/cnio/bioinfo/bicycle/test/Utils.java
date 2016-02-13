@@ -111,6 +111,14 @@ public class Utils {
 		return getClassesPath()+File.separator+"testdata"+File.separator+"READSPAIRED";
 	}
 	
+	public static String getNonDirectionalSingleEndDirectory(){
+		return getClassesPath()+File.separator+"testdata"+File.separator+"READSCOKUS";
+	}
+	
+	public static String getNonDirectionalPairedEndDirectory(){
+		return getClassesPath()+File.separator+"testdata"+File.separator+"READSPAIREDCOKUS";
+	}
+	
 	public static String getReferenceDirectory(){
 		return getClassesPath()+File.separator+"testdata"+File.separator+"REFERENCES";
 	}
@@ -118,12 +126,23 @@ public class Utils {
 	public static String getSimulatedDataReferenceDirectory(){
 		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"ref_genomes";
 	}
+	
 	public static String getSimulatedDataReadsDirectory(){
 		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads";
 	}
+	
+	public static String getSimulatedNonDirectionalDataReadsDirectory(){
+		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads-non-directional";
+	}
+	
 	public static String getSimulatedDataPairedReadsDirectory(){
 		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads-paired";
 	}
+	
+	public static String getSimulatedNonDirectionalPairedDataReadsDirectory(){
+		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads-non-directional-paired";
+	}
+	
 	public static String getBedsDirectory(){
 		return getClassesPath()+"testdata"+File.separator+"BED";
 	}

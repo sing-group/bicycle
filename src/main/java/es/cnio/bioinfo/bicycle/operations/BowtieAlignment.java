@@ -33,6 +33,8 @@ import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import es.cnio.bioinfo.bicycle.FastqSplitter;
 import es.cnio.bioinfo.bicycle.Project;
@@ -191,8 +193,23 @@ public class BowtieAlignment {
 				}
 				readsFiles.add(bisulfitedRead);
 			}
-			streamsWATSON = FastqSplitter.splitfastq(readsFiles, threads);
-			streamsCRICK = FastqSplitter.splitfastq(readsFiles, threads);
+			
+			if (!sample.isDirectional()) {
+				//cokus
+				streamsWATSON = new LinkedList<BufferedReader>();
+				for (BufferedReader reader : FastqSplitter.splitfastq(readsFiles, threads)) {
+					streamsWATSON.add(new GtoADuplicatorReader(reader));
+				}
+				streamsCRICK = new LinkedList<BufferedReader>();
+				for (BufferedReader reader : FastqSplitter.splitfastq(readsFiles, threads)) {
+					streamsCRICK.add(new GtoADuplicatorReader(reader));
+				}
+				
+				
+			} else {
+				streamsWATSON = FastqSplitter.splitfastq(readsFiles, threads);
+				streamsCRICK = FastqSplitter.splitfastq(readsFiles, threads);
+			}
 		}else {
 			//paired end
 			final List<File> readsFilesM1 = new LinkedList<File>();
@@ -218,7 +235,7 @@ public class BowtieAlignment {
 			List<BufferedReader> mate2Readers = FastqSplitter.splitfastq(readsFilesM2, threads);
 			
 			for (int i = 0; i<mate1Readers.size(); i++){
-				streamsWATSON.add(new PairedEndBowtieReader(mate1Readers.get(i), mate2Readers.get(i), Strand.WATSON));
+				streamsWATSON.add(new PairedEndBowtieReader(mate1Readers.get(i), mate2Readers.get(i), sample.isDirectional()));
 			}
 			
 			//streamsCRICK
@@ -227,7 +244,7 @@ public class BowtieAlignment {
 			mate2Readers = FastqSplitter.splitfastq(readsFilesM2, threads);
 			
 			for (int i = 0; i<mate1Readers.size(); i++){
-				streamsCRICK.add(new PairedEndBowtieReader(mate1Readers.get(i), mate2Readers.get(i), Strand.CRICK));
+				streamsCRICK.add(new PairedEndBowtieReader(mate1Readers.get(i), mate2Readers.get(i), sample.isDirectional()));
 			}
 		}
 		
@@ -348,43 +365,191 @@ public class BowtieAlignment {
 				logger.info("Both alignments finished. Ambigous reads: "+tagCount);
 				
 			}
+			
+			private String directionalPreviousLineCT;
+			private String directionalPreviousLineGA;
+			
+			private int previousEditDistance = -1;
+			
+			private int previousEditDistanceMate1 = -1;
+			private int previousEditDistanceMate2 = -1;
+			private int nonDirectionalPreviousEditDistanceMate1 = -1;
+			private String directionalPreviousLineCTMate1;
+			private String directionalPreviousLineGAMate1;
+			private String directionalPreviousLineCTMate2;
+			private String directionalPreviousLineGAMate2;
+			private String nonDirectionalPreviousLineCTMate1;
+			private String nonDirectionalPreviousLineGAMate1;
+			
+			private Pattern editDistancePattern = Pattern.compile("\\tNM:i:([^\\n\\t]+)");
 			public void merge(){
+				
 				CTLine = replaceOriginalRead(CTLine).trim();
 				GALine = replaceOriginalRead(GALine).trim();
 				
-				
-				outputBufferCT.append(CTLine);
-				outputBufferGA.append(GALine);
-				
+				boolean ambiguous = false;
 				if (!CTLine.startsWith("@")){
-					String[] tokensCT = CTLine.split("\t",7);
-					String[] tokensGA = GALine.split("\t",7);
+					String[] tokensCT = CTLine.split("\t");
+					String[] tokensGA = GALine.split("\t");
 					
 					//System.out.println(tokensCT[0]+" = "+tokensGA[0]);
 					if (!sample.isPaired() && !tokensCT[0].equals(tokensGA[0])){
 						throw new RuntimeException("BUG: reading two samrecords from CT and GA alignments with are a different read\nCT:"+CTLine+"\nGA:"+GALine);
-					}else if (sample.isPaired() && !tokensCT[0].substring(0, tokensCT[0].length()-1).equals(tokensGA[0].substring(0, tokensGA[0].length()-1))){
-						//throw new RuntimeException("BUG: reading two samrecords from CT and GA alignments with are a different read (ignoring last character)\nCT:"+CTLine+"\nGA:"+GALine);
-					}
-					//System.out.println("tokensCT[5] "+tokensCT[5]);
-					//System.out.println("tokensGA[5] "+tokensGA[5]);
+					}/*else if (sample.isPaired() && !tokensCT[0].substring(0, tokensCT[0].length()-1).equals(tokensGA[0].substring(0, tokensGA[0].length()-1))){
+						throw new RuntimeException("BUG: reading two samrecords from CT and GA alignments with are a different read (ignoring last character)\nCT:"+CTLine+"\nGA:"+GALine);
+					}*/
+					
 					if (!tokensCT[5].equals("*") && !tokensGA[5].equals("*")){
 						//adding a flag to sam indicating that this is ambiguous. Also add RG (mandatory in gatk)
-						outputBufferCT.append("\tZA:A:Y\tRG:Z:"+Strand.WATSON.name());
-						outputBufferGA.append("\tZA:A:Y\tRG:Z:"+Strand.CRICK.name());
-						
+						ambiguous = true;
 						tagCount++;
-					}else{
-						outputBufferCT.append("\tRG:Z:"+Strand.WATSON.name());
-						outputBufferGA.append("\tRG:Z:"+Strand.CRICK.name());
+					}
+					
+					if (sample.isDirectional()) {
+						if (ambiguous) {
+							outputBufferCT.append(CTLine+"\tZA:A:Y\tRG:Z:"+Strand.WATSON.name()+"\n");
+							outputBufferGA.append(GALine+"\tZA:A:Y\tRG:Z:"+Strand.CRICK.name()+"\n");
+						} else {
+							outputBufferCT.append(CTLine+"\tRG:Z:"+Strand.WATSON.name()+"\n");
+							outputBufferGA.append(GALine+"\tRG:Z:"+Strand.CRICK.name()+"\n");
+						}
+					} else {
+						//get edit distance
+						int currentEditDistance = -1;
+						if (!tokensCT[5].equals("*")) {
+							Matcher matcher = editDistancePattern.matcher(CTLine);
+							matcher.find();
+							currentEditDistance = Integer.parseInt(matcher.group(1));
+						} 
 						
+						
+						
+						if (!tokensGA[5].equals("*")) {
+							Matcher matcher = editDistancePattern.matcher(GALine);
+							matcher.find();
+							int GAEditDistance = Integer.parseInt(matcher.group(1));
+							if (GAEditDistance < currentEditDistance || currentEditDistance == -1){
+								currentEditDistance = GAEditDistance;
+							}
+						}
+						
+						
+						if (sample.isPaired()) {
+							if (directionalPreviousLineCTMate1 == null) {
+								if (ambiguous) {
+									directionalPreviousLineCTMate1 = CTLine+"\tZA:A:Y\tRG:Z:"+Strand.WATSON.name()+"\n";
+									directionalPreviousLineGAMate1 = GALine+"\tZA:A:Y\tRG:Z:"+Strand.CRICK.name()+"\n";
+								} else {
+									directionalPreviousLineCTMate1 = CTLine+"\tRG:Z:"+Strand.WATSON.name()+"\n";
+									directionalPreviousLineGAMate1 = GALine+"\tRG:Z:"+Strand.CRICK.name()+"\n";
+								}
+								previousEditDistanceMate1 = currentEditDistance;
+							} else if (directionalPreviousLineCTMate2 == null) {
+								if (ambiguous) {
+									directionalPreviousLineCTMate2 = CTLine+"\tZA:A:Y\tRG:Z:"+Strand.WATSON.name()+"\n";
+									directionalPreviousLineGAMate2 = GALine+"\tZA:A:Y\tRG:Z:"+Strand.CRICK.name()+"\n";
+								} else {
+									directionalPreviousLineCTMate2 = CTLine+"\tRG:Z:"+Strand.WATSON.name()+"\n";
+									directionalPreviousLineGAMate2 = GALine+"\tRG:Z:"+Strand.CRICK.name()+"\n";
+								}
+								previousEditDistanceMate2 = currentEditDistance;
+							} else if (nonDirectionalPreviousLineCTMate1 == null) {
+								if (ambiguous) {
+									nonDirectionalPreviousLineCTMate1 = CTLine+"\tZA:A:Y\tRG:Z:"+Strand.WATSON.name()+"\n";
+									nonDirectionalPreviousLineGAMate1 = GALine+"\tZA:A:Y\tRG:Z:"+Strand.CRICK.name()+"\n";
+								} else {
+									nonDirectionalPreviousLineCTMate1 = CTLine+"\tRG:Z:"+Strand.WATSON.name()+"\n";
+									nonDirectionalPreviousLineGAMate1 = GALine+"\tRG:Z:"+Strand.CRICK.name()+"\n";
+								}
+								nonDirectionalPreviousEditDistanceMate1 = currentEditDistance;
+							} else {
+								//which mate to print?? those with better edit distance
+								int directionalEditDistance = Math.max(previousEditDistanceMate1, previousEditDistanceMate2);
+								int nonDirectionalEditDistance = Math.max(nonDirectionalPreviousEditDistanceMate1, currentEditDistance);
+								
+								if (directionalEditDistance >= nonDirectionalEditDistance) {
+									outputBufferCT.append(directionalPreviousLineCTMate1);
+									outputBufferCT.append(directionalPreviousLineCTMate2);
+									outputBufferGA.append(directionalPreviousLineGAMate1);
+									outputBufferGA.append(directionalPreviousLineGAMate2);
+								} else {
+									//we have better edit distance
+									outputBufferCT.append(nonDirectionalPreviousLineCTMate1);										
+									outputBufferGA.append(nonDirectionalPreviousLineGAMate1);										
+									if (ambiguous) {
+										outputBufferCT.append(CTLine+"\tZA:A:Y\tRG:Z:"+Strand.WATSON.name()+"\n");
+										outputBufferGA.append(GALine+"\tZA:A:Y\tRG:Z:"+Strand.CRICK.name()+"\n");
+									} else {
+										outputBufferCT.append(CTLine+"\tRG:Z:"+Strand.WATSON.name()+"\n");
+										outputBufferGA.append(GALine+"\tRG:Z:"+Strand.CRICK.name()+"\n");
+									}
+									
+									
+								}
+								previousEditDistanceMate1 = -1;
+								previousEditDistanceMate2 = -1;
+								nonDirectionalPreviousEditDistanceMate1 = -1;
+								directionalPreviousLineCTMate1 = null;
+								directionalPreviousLineGAMate1 = null;
+								directionalPreviousLineCTMate2 = null;
+								directionalPreviousLineGAMate2 = null;
+								nonDirectionalPreviousLineCTMate1 = null;
+								nonDirectionalPreviousLineGAMate1 = null;
+							}
+							
+						} else {
+							if (directionalPreviousLineCT == null) {
+								
+								if (ambiguous) {
+									directionalPreviousLineCT = CTLine+"\tZA:A:Y\tRG:Z:"+Strand.WATSON.name()+"\n";
+									directionalPreviousLineGA = GALine+"\tZA:A:Y\tRG:Z:"+Strand.CRICK.name()+"\n";
+								} else {
+									directionalPreviousLineCT = CTLine+"\tRG:Z:"+Strand.WATSON.name()+"\n";
+									directionalPreviousLineGA = GALine+"\tRG:Z:"+Strand.CRICK.name()+"\n";
+								}
+								previousEditDistance = currentEditDistance;
+							} else {
+								// which of the two pairs should be written, the one with the best alignment. If none has alignment
+								// keep the first one in the output
+								if (currentEditDistance == -1) {
+									// no matches in the non-directional reads, so do not output this line, only the preivous
+									outputBufferCT.append(directionalPreviousLineCT);
+									outputBufferGA.append(directionalPreviousLineGA);
+								} else {
+									if ((currentEditDistance < previousEditDistance && previousEditDistance != -1) ||
+										previousEditDistance == -1 && currentEditDistance >=0 ) {
+										// we have better edit distance, ignore previous, print the non-directional instead
+										if (ambiguous) {
+											outputBufferCT.append(CTLine+"\tZA:A:Y\tRG:Z:"+Strand.WATSON.name()+"\n");
+											outputBufferGA.append(GALine+"\tZA:A:Y\tRG:Z:"+Strand.CRICK.name()+"\n");
+										} else {
+											outputBufferCT.append(CTLine+"\tRG:Z:"+Strand.WATSON.name()+"\n");
+											outputBufferGA.append(GALine+"\tRG:Z:"+Strand.CRICK.name()+"\n");
+										}
+									} else {
+										// no better edit distance, print only the previous
+										outputBufferCT.append(directionalPreviousLineCT);
+										outputBufferGA.append(directionalPreviousLineGA);
+									}
+								}
+								
+								directionalPreviousLineCT = null;
+								directionalPreviousLineGA = null;
+								previousEditDistance = -1;
+								
+							}
+						}
 					}
 					
 					
+				} else {
+					outputBufferCT.append(CTLine+"\n");
+					outputBufferGA.append(GALine+"\n");
 				}
+
 				
-				outputBufferCT.append("\n");
-				outputBufferGA.append("\n");
+				
+				
 				
 				mergeCount++;
 				

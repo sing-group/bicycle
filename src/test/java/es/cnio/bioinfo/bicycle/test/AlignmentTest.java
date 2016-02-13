@@ -47,7 +47,8 @@ public class AlignmentTest {
 					new File(Utils.getReferenceDirectory()), 
 					new File(Utils.getReadsDirectory()), 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 			
 			boolean bisulfitedReferenceExists = false;
 			ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
@@ -70,7 +71,8 @@ public class AlignmentTest {
 						new File(Utils.getReferenceDirectory()), 
 						new File(Utils.getReadsDirectory()), 
 						new File(Utils.getBowtiePath()),
-						new File(Utils.getSamtoolsPath()));
+						new File(Utils.getSamtoolsPath()),
+						true);
 			}
 			BowtieAlignment ba = new BowtieAlignment(p);
 			
@@ -92,7 +94,8 @@ public class AlignmentTest {
 					new File(Utils.getReferenceDirectory()), 
 					new File(Utils.getReadsDirectory()), 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 			
 			ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 			BowtieAlignment ba = new BowtieAlignment(p);
@@ -116,7 +119,8 @@ public class AlignmentTest {
 					new File(Utils.getReferenceDirectory()), 
 					new File(Utils.getReadsDirectory()), 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 			
 			ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 			BowtieAlignment ba = new BowtieAlignment(p);
@@ -134,7 +138,7 @@ public class AlignmentTest {
 				}
 			}
 			
-		}finally{
+		} finally {
 			Utils.deleteDir(tempDir);
 		}		
 	}

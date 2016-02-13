@@ -49,7 +49,8 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()), 
 					new File(Utils.getReadsDirectory()), 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 		}finally{
 			Utils.deleteDir(tempDir);
 		}		
@@ -64,7 +65,8 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()), 
 					new File(Utils.getReadsDirectory()), 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 			
 			assertTrue(new File(tempDir.getAbsolutePath()+File.separator+Project.OUTPUT_DIRECTORY).exists());
 			assertTrue(new File(tempDir.getAbsolutePath()+File.separator+Project.WORKING_DIRECTORY).exists());
@@ -83,7 +85,8 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()), 
 					new File(Utils.getReadsDirectory()), 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 			
 			Project p2 = Project.readFromDirectory(tempDir);
 			
@@ -136,7 +139,8 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()), 
 					samplesDir, 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 			
 			List<Sample> samples = p.getSamples();
 			assertEquals(3, samples.size());

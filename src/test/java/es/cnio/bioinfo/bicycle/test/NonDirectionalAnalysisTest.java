@@ -19,13 +19,15 @@ You should have received a copy of the GNU Lesser Public License
 along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package es.cnio.bioinfo.bicycle.testsimulated;
+package es.cnio.bioinfo.bicycle.test;
 
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -34,27 +36,26 @@ import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Quals;
+import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
 import es.cnio.bioinfo.bicycle.operations.SampleBisulfitation;
-import es.cnio.bioinfo.bicycle.test.Utils;
 
-public class SimulatedDataAnalysisTest {
+public class NonDirectionalAnalysisTest {
 
 	
 	
 	private Project prepareProject() throws IOException {
 		
-		File tempDir = Utils.generateTempDirName("newproject-simulated-data");	
-		
+		File tempDir = Utils.generateTempDirName("newproject");		
+		System.err.println("CREATED PROJECT IN "+tempDir);
 		Project p = Project.buildNewProject(
 				tempDir,
-				new File(Utils.getSimulatedDataReferenceDirectory()), 
-				new File(Utils.getSimulatedDataReadsDirectory()), 
+				new File(Utils.getReferenceDirectory()), 
+				new File(Utils.getNonDirectionalSingleEndDirectory()), 
 				new File(Utils.getBowtiePath()),
-				new File(Utils.getSamtoolsPath()),
-				true);
+				new File(Utils.getSamtoolsPath()), false);
 		
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 		BowtieAlignment ba = new BowtieAlignment(p);
@@ -64,11 +65,12 @@ public class SimulatedDataAnalysisTest {
 			rb.computeReferenceBisulfitation(Replacement.GA, ref, true);
 			ba.buildBowtieIndex(ref);
 		}
+		
 		for (Sample sample : p.getSamples()){
 			SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);
 			for (Reference reference : p.getReferences()){
-				ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
+				ba.performBowtieAlignment(sample, reference, 1, 140, 20, 0, 64, Quals.BEFORE_1_3);
 			}
 		}
 			
@@ -76,49 +78,63 @@ public class SimulatedDataAnalysisTest {
 	}
 	
 	@Test
-	public void analysisMultithread() throws IOException, InterruptedException{
+	public void analysis() throws IOException, InterruptedException{
 		Project project = prepareProject();
-	//	Project project = Project.readFromDirectory(new File("/tmp/newproject-simulated-data181c07eb-a533-4eec-91ab-47177f88f7ff"));
 		try{
 			
 			MethylationAnalysis ma = new MethylationAnalysis(project);
 
+			List<File> bedFiles = Arrays.asList(new File(Utils.getBedsDirectory()).listFiles(new FilenameFilter() {
+				
+				@Override
+				public boolean accept(File arg0, String arg1) {
+					return arg1.endsWith(".bed");
+				}
+			}));
 			
+			System.out.println("beds2: "+bedFiles);
 			for (Sample sample: project.getSamples()){
 				for (Reference reference : project.getReferences()){
 					
-					ma.analyzeWithErrorFromControlGenome(
+					ma.analyzeWithFixedErrorRate(
 							reference, 
 							sample, 
-							true, 
+							false, 
 							4, 
 							true, 
-							true,
+							false,
 							false,
 							true,
 							1,
 							0.01, 
-							4,
-							new ArrayList<File>(), 
-							"Ecoli");
+							1,
+							bedFiles, 
+							0.001, 0.001);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 					
+					System.err.println("====METHYLATION-WATSON=====");
+					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)));
+					System.err.println("===========================");
 
+					System.err.println("====METHYLATION-CRICK=====");
+					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)));
+					System.err.println("===========================");
 					
+					
+					System.err.println("=====METHYLCYTOSINES=======");
+					System.err.println(Utils.readFile(ma.getMethylcytosinesFile(reference, sample)));
+					System.err.println(Utils.readFile(ma.getMethylcytosinesVCFFile(reference, sample)));
+					System.err.println("===========================");
 					
 					System.err.println("==========SUMMARY==========");
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
-					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.29")!=-1); //assert the 30% methylation level on CG
-					
 					System.err.println("===========================");
 					
 				}
 			}
-		} finally{
+		} finally {
 			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
-		
 	}
-	
-	
+
 }

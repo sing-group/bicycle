@@ -45,6 +45,7 @@ public class Project {
 	
 	private File bowtieDirectory, samtoolsDirectory, projectDirectory, referenceDirectory, readsDirectory;
 	private boolean paired = false;
+	private boolean directional = true;
 	private String mate1regexp = null;
 	
 	private List<Sample> samples = new LinkedList<Sample>();
@@ -87,8 +88,13 @@ public class Project {
 	public List<Sample> getSamples() {
 		return Collections.unmodifiableList(samples);
 	}
+	
 	public boolean isPaired() {
 		return paired;
+	}
+	
+	public boolean isDirectional() {
+		return directional;
 	}
 	
 	String getMate1regexp() {
@@ -124,6 +130,8 @@ public class Project {
 		wr.newLine();
 		wr.write("paired:"+paired);
 		wr.newLine();
+		wr.write("directional:"+directional);
+		wr.newLine();
 		if (paired){ 
 			wr.write("mate1regexp:"+mate1regexp);
 			wr.newLine();
@@ -145,14 +153,14 @@ public class Project {
 
 	public static Project buildNewProject(File projectDirectory,
 			File referenceDirectory, File readsDirectory, File bowtieDirectory,
-			File samtoolsDirectory) throws IOException {
+			File samtoolsDirectory, boolean directional) throws IOException {
 		return buildNewProject(projectDirectory, referenceDirectory,
-				readsDirectory, bowtieDirectory, samtoolsDirectory, false, null);
+				readsDirectory, bowtieDirectory, samtoolsDirectory, directional, false, null);
 	}
 
 	public static Project buildNewProject(File projectDirectory,
 			File referenceDirectory, File readsDirectory, File bowtieDirectory,
-			File samtoolsDirectory, boolean isPaired, String mate1regexp)
+			File samtoolsDirectory, boolean isDirectional, boolean isPaired, String mate1regexp)
 			throws IOException {
 		if (projectDirectory.exists()) {
 			throw new IllegalArgumentException("The project folder already exists, please remove it first\n");			
@@ -169,6 +177,7 @@ public class Project {
 		p.bowtieDirectory = bowtieDirectory;
 		p.samtoolsDirectory = samtoolsDirectory;
 		p.paired = isPaired;
+		p.directional = isDirectional;
 		p.mate1regexp = mate1regexp;
 		//check the reference directory
 		logger.info("Looking for the reference(s) directory "+referenceDirectory.getAbsolutePath()+"...");			
@@ -189,7 +198,7 @@ public class Project {
 			p.readsDirectory = readsDirectory;
 			logger.info("[OK]");
 			
-			p.samples = Sample.buildSamples(p, p.paired, p.mate1regexp);
+			p.samples = Sample.buildSamples(p, p.paired, p.directional, p.mate1regexp);
 			System.err.println("samle size: "+p.samples.size());
 		}
 		else{
@@ -228,12 +237,16 @@ public class Project {
 					p.paired = Boolean.parseBoolean(value);
 					System.out.println(value);
 				}
+				else if (key.equals("directional")){
+					p.directional = Boolean.parseBoolean(value);
+					System.out.println(value);
+				}
 				else if (key.equals("mate1regexp"))
 					p.mate1regexp = value;
 				else
 					p.addProperty(key, value);
 			}
-			p.samples.addAll(Sample.buildSamples(p, p.paired, p.mate1regexp));
+			p.samples.addAll(Sample.buildSamples(p, p.paired, p.directional, p.mate1regexp));
 			return p;
 		}else{
 			throw new RuntimeException("Path "+projectDirectory+" was not found or it is not a directory or it cannot be accessed");

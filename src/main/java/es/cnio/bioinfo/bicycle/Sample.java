@@ -34,6 +34,7 @@ public class Sample {
 	private String name="unnamed-sample";
 	private List<File> readsFiles = new LinkedList<File>();
 	private boolean paired = false;
+	private boolean directional = true; //directional = Lister, Cokus otherwise
 	private String mate1Regexp="_1.fastq";
 	//for paired-end
 	private List<File> readsFilesM1 = new LinkedList<File>();
@@ -41,13 +42,17 @@ public class Sample {
 	
 	private Project project;
 	
-	Sample(Project project, String name, boolean paired, String mate1Regexp) {
+	Sample(Project project, String name, boolean paired, boolean directional, 
+			String mate1Regexp) 
+	{
 		super();
 		this.name = name;
 		this.project = project;
 		this.paired = paired;
+		this.directional = directional;
 		this.mate1Regexp = mate1Regexp;
 	}
+	
 	Sample(Project project, String name) {
 		super();
 		this.name = name;
@@ -61,6 +66,11 @@ public class Sample {
 	public boolean isPaired() {
 		return paired;
 	}
+	
+	public boolean isDirectional() {
+		return directional;
+	}
+	
 	public List<File> getReadsFiles(){
 		return Collections.unmodifiableList(readsFiles);
 	}
@@ -94,7 +104,7 @@ public class Sample {
 	}
 	
 	public static List<Sample> buildSamples(Project project){
-		return buildSamples(project, false, "");
+		return buildSamples(project, false, true, "");
 	}
 	
 	/**
@@ -105,7 +115,7 @@ public class Sample {
 	 * @param readsPath
 	 * @return
 	 */
-	public static List<Sample> buildSamples(Project project, boolean paired, String mate1Regexp){
+	public static List<Sample> buildSamples(Project project, boolean paired, boolean directional, String mate1Regexp){
 		File readsPath = project.getReadsDirectory();
 		if (!readsPath.exists() || !readsPath.isDirectory()){
 			throw new IllegalArgumentException("Cannot find "+readsPath.getAbsolutePath()+" or it is not a directory, or it is not accessible");
@@ -120,7 +130,7 @@ public class Sample {
 			
 			if (file.isDirectory()){
 				if (file.isHidden()) continue;
-				Sample s = new Sample(project, file.getName(), paired, mate1Regexp);
+				Sample s = new Sample(project, file.getName(), paired, directional, mate1Regexp);
 				
 				File[] files = file.listFiles();
 				Arrays.sort(files, new Comparator<File>(){
@@ -140,7 +150,7 @@ public class Sample {
 				toret.add(s);
 			}else if (!file.isHidden()){
 				if (paired) throw new IllegalArgumentException("Paired-end samples files must be inside a directory per sample");
-				Sample s = new Sample(project, file.getName(), paired, mate1Regexp);
+				Sample s = new Sample(project, file.getName(), paired, directional, mate1Regexp);
 				s.addReadsFile(file);
 				toret.add(s);
 				s.validate();

@@ -55,7 +55,8 @@ public class AnalysisTest {
 				new File(Utils.getReferenceDirectory()), 
 				new File(Utils.getReadsDirectory()), 
 				new File(Utils.getBowtiePath()),
-				new File(Utils.getSamtoolsPath()));
+				new File(Utils.getSamtoolsPath()),
+				true);
 		
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 		BowtieAlignment ba = new BowtieAlignment(p);
@@ -248,7 +249,7 @@ public class AnalysisTest {
 
 					System.err.println("====METHYLATION-CRICK=====");
 					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)));
-					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)).indexOf("chr10\t16\tCRICK\tCHG\t1\t1\t1\t1.0\tG\t0.0\tfalse\tfalse")!=-1);
+					assertTrue(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)).indexOf("chr10\t36\tCRICK\tCHH\t1\t1\t0\t0.0\tA\t1.0\tfalse\tfalse")!=-1);
 					System.err.println("===========================");
 					
 					
@@ -263,7 +264,7 @@ public class AnalysisTest {
 				}
 			}
 		}finally{
-			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
+			//Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 		
 	}
@@ -395,7 +396,7 @@ public class AnalysisTest {
 					
 				}
 			}
-		}finally{
+		} finally {
 			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 		

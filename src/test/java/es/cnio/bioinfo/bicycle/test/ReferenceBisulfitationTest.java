@@ -54,7 +54,8 @@ public class ReferenceBisulfitationTest {
 					refsDir, 
 					new File(Utils.getReadsDirectory()), 
 					new File(Utils.getBowtiePath()),
-					new File(Utils.getSamtoolsPath()));
+					new File(Utils.getSamtoolsPath()),
+					true);
 			
 			ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 			
