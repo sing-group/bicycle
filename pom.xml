@@ -138,6 +138,8 @@
 				<configuration>
 					<systemPropertyVariables>
 						<java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+						<bowtie.path>${bowtie.path}</bowtie.path>
+						<samtools.path>${samtools.path}</samtools.path>
 					</systemPropertyVariables>
 					<useSystemClassLoader>false</useSystemClassLoader>
 					<excludes>
@@ -152,10 +154,6 @@
                         	<goal>test</goal>
                         </goals>
                         <configuration>
-                        	<useSystemClassLoader>false</useSystemClassLoader>
-                        	<systemPropertyVariables>
-								<java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
-							</systemPropertyVariables>
                         	<skip>${skipSimulatedTests}</skip>                        
                             <excludes>
                                 <exclude>**/test/*Test.java</exclude>
@@ -174,6 +172,8 @@
 				<configuration>
 					<systemPropertyVariables>
 						<java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+						<bowtie.path>${bowtie.path}</bowtie.path>
+						<samtools.path>${samtools.path}</samtools.path>
 					</systemPropertyVariables>
 					<useSystemClassLoader>false</useSystemClassLoader>
 					<excludes>

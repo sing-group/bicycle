@@ -98,10 +98,10 @@ public class Utils {
 	
 	
 	public static String getBowtiePath() throws IOException{
-		return getProperty("bowtie");
+		return getProperty("bowtie.path");
 	}
 	public static String getSamtoolsPath() throws IOException{
-		return getProperty("samtools");
+		return getProperty("samtools.path");
 	}
 	public static String getReadsDirectory(){
 		return getClassesPath()+File.separator+"testdata"+File.separator+"READS";
@@ -148,12 +148,17 @@ public class Utils {
 	}
 	
 	private static String getProperty(String prop) throws IOException{
+		//first, look in system properties, else look in configuration file
+		String value = System.getProperty(prop);
+		if (value != null)
+			return value;
+		
 		FileInputStream myInputStream = new FileInputStream(getClassesPath()+"/"+"nativedirectories.properties");
 		Properties myProps = new Properties();		
 		myProps.load(myInputStream);
-		return myProps.getProperty(prop);		
-		
+		return myProps.getProperty(prop);
 	}
+	
 	public static String getClassesPath() {
 		return Utils.class.getProtectionDomain().getCodeSource().getLocation().getPath().toString();
 	}
