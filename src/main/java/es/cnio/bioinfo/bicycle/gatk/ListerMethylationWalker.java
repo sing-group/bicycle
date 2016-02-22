@@ -46,6 +46,8 @@ import java.util.UUID;
 
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.picard.util.SamLocusIterator.RecordAndOffset;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.distribution.BinomialDistribution;
@@ -346,7 +348,8 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 			BufferedReader wReader = new BufferedReader(new FileReader(this.methylationFiles.get(Strand.WATSON)));
 			BufferedReader cReader = new BufferedReader(new FileReader(this.methylationFiles.get(Strand.CRICK)));
 			
-			GPFilesReader reader = new GPFilesReader(super.getMasterSequenceDictionary(),wReader, cReader);
+			List<String> sortedSequenceNames = toSequenceNames(super.getMasterSequenceDictionary());
+			GPFilesReader reader = new GPFilesReader(sortedSequenceNames,wReader, cReader);
 			
 			String line = null;
 			
@@ -370,6 +373,15 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 			throw new RuntimeException(e);
 		}
 		
+	}
+
+	private List<String> toSequenceNames(SAMSequenceDictionary masterSequenceDictionary) {
+		String[] sequenceNames = new String[masterSequenceDictionary.getSequences().size()];
+		
+		for (SAMSequenceRecord record: masterSequenceDictionary.getSequences()) {
+			sequenceNames[record.getSequenceIndex()] = record.getSequenceName();
+		}
+		return Arrays.asList(sequenceNames);
 	}
 
 	private void writeMethylcytosinesHeader(PrintStream out) {

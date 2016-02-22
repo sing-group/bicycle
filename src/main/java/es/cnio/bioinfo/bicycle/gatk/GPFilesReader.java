@@ -23,8 +23,9 @@ package es.cnio.bioinfo.bicycle.gatk;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-
-import net.sf.samtools.SAMSequenceDictionary;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Reads several sorted GPFiles, merging them and giving the lines sorted by position
@@ -35,13 +36,19 @@ public class GPFilesReader{
 
 	private BufferedReader[] readers;
 	private String[] current;
-	private SAMSequenceDictionary sequenceDictionary;
-	public GPFilesReader(SAMSequenceDictionary masterSequenceDictionary, BufferedReader ... bufferedReaders) throws IOException {
-	
+
+	private Map<String, Integer> sequenceIndexes = new HashMap<>();
+	public GPFilesReader(List<String> sequenceNames, BufferedReader ... bufferedReaders) throws IOException {
+		
+		int i = 0;
+		for (String sequenceName: sequenceNames) {
+			sequenceIndexes.put(sequenceName, i++);
+		}
+		
 		readers = bufferedReaders;
 		current = new String[readers.length];
-		this.sequenceDictionary = masterSequenceDictionary;
-		int i = 0;
+		
+		i = 0;
 		for (BufferedReader reader : readers){
 			current[i++] = reader.readLine();
 		}
@@ -73,7 +80,7 @@ public class GPFilesReader{
 							minimumPos = currentPos;
 							whoIsMinimum = i;
 						}
-					}else if (this.sequenceDictionary.getSequenceIndex(minimumContig)>this.sequenceDictionary.getSequenceIndex(tokens[0])){
+					}else if (this.sequenceIndexes.get(minimumContig)>this.sequenceIndexes.get(tokens[0])){
 						minimumContig = tokens[0];
 						minimum = currentLine;
 						minimumPos = Long.parseLong(tokens[1]);
