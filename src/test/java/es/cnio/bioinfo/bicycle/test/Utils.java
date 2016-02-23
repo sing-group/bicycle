@@ -136,11 +136,11 @@ public class Utils {
 	}
 	
 	public static String getSimulatedDataPairedReadsDirectory(){
-		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads-paired";
+		return getClassesPath()+File.separator+"sampledata"+File.separator+"reads-paired";
 	}
 	
 	public static String getSimulatedNonDirectionalPairedDataReadsDirectory(){
-		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads-non-directional-paired";
+		return getClassesPath()+File.separator+"sampledata"+File.separator+"reads-non-directional-paired";
 	}
 	
 	public static String getBedsDirectory(){

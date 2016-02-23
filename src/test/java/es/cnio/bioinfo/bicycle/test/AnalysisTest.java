@@ -216,11 +216,10 @@ public class AnalysisTest {
 			List<File> bedFiles = Arrays.asList(new File(Utils.getBedsDirectory()).listFiles(new FilenameFilter() {
 				
 				@Override
-				public boolean accept(File arg0, String arg1) {
-					return arg0.getName().endsWith(".bed");
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".bed");
 				}
 			}));
-			
 			
 			for (Sample sample: project.getSamples()){
 				for (Reference reference : project.getReferences()){
@@ -260,6 +259,18 @@ public class AnalysisTest {
 					System.err.println("==========SUMMARY==========");
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
 					System.err.println("===========================");
+					
+					System.err.println("==========REGIONS==========");
+					for (File bed: bedFiles) {
+						System.err.println(Utils.readFile(ma.getMethylatedRegionsFile(reference, sample, bed)));
+						if (bed.getName().contains("track2")) {
+							assertTrue(Utils.readFile(ma.getMethylatedRegionsFile(reference, sample, bed)).indexOf("From26to70\t5")!=-1);
+							assertTrue(Utils.readFile(ma.getMethylatedRegionsFile(reference, sample, bed)).indexOf("0.1296")!=-1);
+							assertTrue(Utils.readFile(ma.getMethylatedRegionsFile(reference, sample, bed)).indexOf("From51to80\t5")!=-1);
+						}
+					}
+					System.err.println("===========================");
+					
 					
 				}
 			}
