@@ -19,11 +19,14 @@ You should have received a copy of the GNU Lesser Public License
 along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package es.cnio.bioinfo.bicycle.gatk;
+package es.cnio.bioinfo.bicycle;
 
 import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
+
+import es.cnio.bioinfo.bicycle.gatk.Context;
+import es.cnio.bioinfo.bicycle.gatk.Strand;
 public class MethylationCall {
 	private Context context;
 	private double pval;

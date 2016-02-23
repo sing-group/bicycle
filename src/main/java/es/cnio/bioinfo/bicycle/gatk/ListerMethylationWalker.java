@@ -76,6 +76,8 @@ import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import es.cnio.bioinfo.bicycle.MethylationCall;
+
 
 class MethylationFilePair{
 	private static int instancecount = 0;

@@ -21,17 +21,7 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 
 package es.cnio.bioinfo.bicycle.cli;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;

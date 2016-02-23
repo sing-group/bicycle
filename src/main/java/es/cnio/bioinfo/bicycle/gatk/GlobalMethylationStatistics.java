@@ -23,6 +23,8 @@ package es.cnio.bioinfo.bicycle.gatk;
 
 import java.util.HashMap;
 
+import es.cnio.bioinfo.bicycle.MethylationCall;
+
 class MethylationStatistics{
 	
 	private HashMap<Context, Integer> cCounts = new HashMap<Context, Integer>();

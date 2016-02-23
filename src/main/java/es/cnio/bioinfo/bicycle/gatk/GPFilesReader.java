@@ -37,6 +37,8 @@ public class GPFilesReader{
 	private BufferedReader[] readers;
 	private String[] current;
 
+	private int lastLineReaderIndex = -1;
+	
 	private Map<String, Integer> sequenceIndexes = new HashMap<>();
 	public GPFilesReader(List<String> sequenceNames, BufferedReader ... bufferedReaders) throws IOException {
 		
@@ -53,6 +55,7 @@ public class GPFilesReader{
 			current[i++] = reader.readLine();
 		}
 	}
+	
 	
 	
 	public String readLine() throws IOException{
@@ -93,7 +96,21 @@ public class GPFilesReader{
 		}
 		if (minimum != null){
 			this.current[whoIsMinimum] = this.readers[whoIsMinimum].readLine();
+			this.lastLineReaderIndex = whoIsMinimum;
+		} else {
+			this.lastLineReaderIndex = -1;
 		}
+		
 		return minimum;
+	}
+	
+	/**
+	 * Returns the index of the buffer where the last returned line was extracted from
+	 *  If no line was currently extracted of null was returned, this method returns -1.
+	 *  
+	 * @return The index of the buffer where the last line was extracted from.
+	 */
+	public int getLastLineReaderIndex() {
+		return lastLineReaderIndex;
 	}
 }

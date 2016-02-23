@@ -36,16 +36,18 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
 import es.cnio.bioinfo.bicycle.ErrorRateMode;
+import es.cnio.bioinfo.bicycle.MethylationCall;
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
+import es.cnio.bioinfo.bicycle.RegionMethylation;
 import es.cnio.bioinfo.bicycle.Sample;
 import es.cnio.bioinfo.bicycle.Tools;
-import es.cnio.bioinfo.bicycle.gatk.MethylationCall;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 
 public class MethylationAnalysis {
@@ -169,7 +171,7 @@ public class MethylationAnalysis {
 	        enableSystemExitCall() ;
 	    }
 		
-		computeRegionsMethylation(reference, sample, bedFiles);
+		writeRegionsMethylation(reference, sample, bedFiles);
 	}
 
 	private String prepareGATKCommand(Reference reference, Sample sample, boolean trimreads, int trimuntil,
@@ -250,7 +252,7 @@ public class MethylationAnalysis {
 		return command;
 	}
 
-	private void computeRegionsMethylation(Reference reference, Sample sample, List<File> bedFiles) throws IOException {
+	private void writeRegionsMethylation(Reference reference, Sample sample, List<File> bedFiles) throws IOException {
 		// <---- Cytosine METHYLATION PER ANNOTATED REGION ---->
 		// IF BED FILES ARE AVAILABLE, then cytosine methylation per annotated
 		// region is also calculated
@@ -259,150 +261,32 @@ public class MethylationAnalysis {
 			// calculates methylation for each annotated region in each bed file
 			// for the methylcytosines file
 
-			File methylcytosinesFile = this.getMethylcytosinesFile(reference, sample);
-			System.out.println(
-					"[ Calculating methylation per annotated region for: " + methylcytosinesFile.toString() + " ]");
-
+			
 			// foreach bed file
 			for (File bed : bedFiles) {
 				System.out.println("\t\t[ Checking methylation for regions annotated in " + bed.toString() + " ]");
 				BufferedWriter w = null;
-
+				String annotationSet = bed.getName();
 				try {
 					// output file that will store methylation values for each
 					// annotated region
 					File outputFile = this.getMethylatedRegionsFile(reference, sample, bed);
 
 					FileWriter o = new FileWriter(outputFile);
+					
 					w = new BufferedWriter(o);
-					w.write("Region\tmCG WATSON\tdepthCG WATSON\tCG WATSON methylation\tmCG CRICK\tdepthCG CRICK\tCG CRICK methylation");
-					w.write("\tmCG total methylation\tmCG total depth\tCG TOTAL methylation");
-					w.write("\tmCHG WATSON\tdepthCHG WATSON\tCHG WATSON methylation\tmCHG CRICK\tdepthCHG CRICK\tCHG CRICK methylation");
-					w.write("\tmCHG total methylation\tmCHG total depth\tCHG TOTAL methylation");
-					w.write("\tmCHH WATSON\tdepthCHH WATSON\tCHH WATSON methylation\tmCHH CRICK\tdepthCHH CRICK\tCHH CRICK methylation");
-					w.write("\tmCHH total methylation\tmCHH total depth\tCHH TOTAL methylation");
+					w.write(RegionMethylation.getMarshallHeader());
 					w.newLine();
 					w.flush();
 
-					// opens the methylcytosine file
-					FileReader f = new FileReader(methylcytosinesFile);
-					BufferedReader b = new BufferedReader(f);
-
-					boolean firstLine = true;
-					int columnOfInterest = -1;
-
-					// each hash table contains separated values for Watson and
-					// Crick
-					Map<String, Map<String, Integer>> mCG = new LinkedHashMap<>();
-					Map<String, Map<String, Integer>> mCHG = new LinkedHashMap<>();
-					Map<String, Map<String, Integer>> mCHH = new LinkedHashMap<>();
-					Map<String, Map<String, Integer>> depthCG = new LinkedHashMap<>();
-					Map<String, Map<String, Integer>> depthCHG = new LinkedHashMap<>();
-					Map<String, Map<String, Integer>> depthCHH = new LinkedHashMap<>();
-
-					String line;
-
-					// for each line in the methylcytosines file (starting from
-					// line 0, i.e., first line)
-					while ((line = b.readLine()) != null) {
-						
-						String tokens[] = line.split("\t");
-
-						
-						// if positioned in first (header) line (line 0), it
-						// finds out the column number that contains
-						// the genomic annotations for the current bed file
-						if (firstLine) {
-							// checks all first line headers
-							for (int pos = 0; pos < tokens.length; pos++) {
-								if (tokens[pos].equals(bed.getName())) {
-									// the current bed file is in column 'pos'
-									columnOfInterest = pos;
-									break;
-								}
-							}
-
-							firstLine = false;
-
-						} // if(firstLine)
-						else {// not in first line (not header line)
-							MethylationCall call = MethylationCall.unmarshall(line);
-							if (!tokens[columnOfInterest].contains("N/A")) {
-								List<String> regions = Arrays.asList(tokens[columnOfInterest].split("[|]"));
-
-
-								for (String region : regions) {
-									if (!mCG.containsKey(region)) {
-										// initialization
-											mCG.put(region, new HashMap<String, Integer>());
-											mCG.get(region).put("WATSON", 0);
-											mCG.get(region).put("CRICK", 0);
-											
-											mCHG.put(region, new HashMap<String, Integer>());
-											mCHG.get(region).put("WATSON", 0);
-											mCHG.get(region).put("CRICK", 0);
-											
-											mCHH.put(region, new HashMap<String, Integer>());
-											mCHH.get(region).put("WATSON", 0);
-											mCHH.get(region).put("CRICK", 0);
-											
-											depthCG.put(region, new HashMap<String, Integer>());
-											depthCG.get(region).put("WATSON", 0);
-											depthCG.get(region).put("CRICK", 0);
-											
-											depthCHG.put(region, new HashMap<String, Integer>());
-											depthCHG.get(region).put("WATSON", 0);
-											depthCHG.get(region).put("CRICK", 0);
-											
-											depthCHH.put(region, new HashMap<String, Integer>());
-											depthCHH.get(region).put("WATSON", 0);
-											depthCHH.get(region).put("CRICK", 0);
-									}
-									
-									
-									// value accumulation
-										// accumulates methylated cytosines
-									
-										String strand = call.getStrand().name();//tokens[2];
-										String methylationContext = call.getContext().name();//tokens[3];
-										int depth = call.getDepth();//Integer.parseInt(tokens[4]);
-										int methylation =call.getCytosines();// Integer.parseInt(tokens[6]);
-	
-										// accumulates new values for the current
-										// annotated region
-										switch (methylationContext) {
-										case "CG":
-											mCG.get(region).put(strand, mCG.get(region).get(strand) + methylation);
-											depthCG.get(region).put(strand, depthCG.get(region).get(strand) + depth);
-											break;
-	
-										case "CHG":
-											mCHG.get(region).put(strand, mCHG.get(region).get(strand) + methylation);
-											depthCHG.get(region).put(strand, depthCHG.get(region).get(strand) + depth);
-											break;
-	
-										case "CHH":
-											mCHH.get(region).put(strand, mCHH.get(region).get(strand) + methylation);
-											depthCHH.get(region).put(strand, depthCHH.get(region).get(strand) + depth);
-											break;
-	
-										default:
-											System.out.print("[Invalid methylation context]: ");
-											System.out.println(line);
-										}
-	
-								}
-							} // if(!tokens[columnOfInterest].equals("N/A")
-
-						} // else{// not in first line (not header line)
-
-					} // while((line=b.readLine())!=null)
-
-					for (String region: mCG.keySet()) {
-						dumpRegionMethylation(w, region, mCG.get(region), mCHG.get(region), mCHH.get(region), depthCG.get(region), depthCHG.get(region), depthCHH.get(region));
-					}
 					
-					b.close();
+					List<RegionMethylation> regionsMethylation = 
+							computeRegionsMethylation(reference, sample, annotationSet);
+					
+					for (RegionMethylation rM : regionsMethylation) {
+						w.append(rM.marshall());
+						w.newLine();
+					}
 
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
@@ -419,38 +303,152 @@ public class MethylationAnalysis {
 		} // if(!bedFiles.isEmpty())
 	}
 
-	private void dumpRegionMethylation(BufferedWriter w, String previousGenomicRegion, Map<String, Integer> mCG,
-			Map<String, Integer> mCHG, Map<String, Integer> mCHH, Map<String, Integer> depthCG,
-			Map<String, Integer> depthCHG, Map<String, Integer> depthCHH) throws IOException {
-		//mCG
-		double result=(double)mCG.get("WATSON")/(double)depthCG.get("WATSON");										
-		DecimalFormat df = new DecimalFormat("#.#######");
-		StringBuffer buf=new StringBuffer(previousGenomicRegion);
-		buf.append("\t").append(mCG.get("WATSON")).append("\t").append(depthCG.get("WATSON")).append("\t").append(df.format(result));
-		result=(double)mCG.get("CRICK")/(double)depthCG.get("CRICK");
-		buf.append("\t").append(mCG.get("CRICK")).append("\t").append(depthCG.get("CRICK")).append("\t").append(df.format(result));
-		result=(double)(mCG.get("WATSON")+mCG.get("CRICK"))/(double)(depthCG.get("WATSON")+depthCG.get("CRICK"));
-		buf.append("\t").append(mCG.get("WATSON")+mCG.get("CRICK")).append("\t").append(depthCG.get("WATSON")+depthCG.get("CRICK")).append("\t").append(df.format(result));
+	public List<RegionMethylation> computeRegionsMethylation(Reference reference, Sample sample, String annotationSet)
+			throws FileNotFoundException, IOException {
+		File methylcytosinesFile = this.getMethylcytosinesFile(reference, sample);
+		System.out.println(
+				"[ Calculating methylation per annotated region for: " + methylcytosinesFile.toString() + " ]");
+
+		List<RegionMethylation> regionsMethylation = new LinkedList<>(); 
+
+		// each hash table contains separated values for Watson and
+		// Crick
+		Map<String, Map<String, Integer>> mCG = new LinkedHashMap<>();
+		Map<String, Map<String, Integer>> mCHG = new LinkedHashMap<>();
+		Map<String, Map<String, Integer>> mCHH = new LinkedHashMap<>();
+		Map<String, Map<String, Integer>> depthCG = new LinkedHashMap<>();
+		Map<String, Map<String, Integer>> depthCHG = new LinkedHashMap<>();
+		Map<String, Map<String, Integer>> depthCHH = new LinkedHashMap<>();
+
+
+		boolean firstLine = true;
+		int columnOfInterest = -1;
+
+		// opens the methylcytosine file
+		FileReader f = new FileReader(methylcytosinesFile);
+		BufferedReader b = new BufferedReader(f);
+		String line;
+
+		// for each line in the methylcytosines file (starting from
+		// line 0, i.e., first line)
+		while ((line = b.readLine()) != null) {
+			
+			String tokens[] = line.split("\t");
+
+			
+			// if positioned in first (header) line (line 0), it
+			// finds out the column number that contains
+			// the genomic annotations for the current bed file
+			if (firstLine) {
+				// checks all first line headers
+				for (int pos = 0; pos < tokens.length; pos++) {
+					if (tokens[pos].equals(annotationSet)) {
+						// the current bed file is in column 'pos'
+						columnOfInterest = pos;
+						break;
+					}
+				}
+
+				firstLine = false;
+
+			} // if(firstLine)
+			else {// not in first line (not header line)
+				MethylationCall call = MethylationCall.unmarshall(line);
+				if (!tokens[columnOfInterest].contains("N/A")) {
+					List<String> regions = Arrays.asList(tokens[columnOfInterest].split("[|]"));
+
+
+					for (String region : regions) {
+						if (!mCG.containsKey(region)) {
+							// initialization
+								mCG.put(region, new HashMap<String, Integer>());
+								mCG.get(region).put("WATSON", 0);
+								mCG.get(region).put("CRICK", 0);
+								
+								mCHG.put(region, new HashMap<String, Integer>());
+								mCHG.get(region).put("WATSON", 0);
+								mCHG.get(region).put("CRICK", 0);
+								
+								mCHH.put(region, new HashMap<String, Integer>());
+								mCHH.get(region).put("WATSON", 0);
+								mCHH.get(region).put("CRICK", 0);
+								
+								depthCG.put(region, new HashMap<String, Integer>());
+								depthCG.get(region).put("WATSON", 0);
+								depthCG.get(region).put("CRICK", 0);
+								
+								depthCHG.put(region, new HashMap<String, Integer>());
+								depthCHG.get(region).put("WATSON", 0);
+								depthCHG.get(region).put("CRICK", 0);
+								
+								depthCHH.put(region, new HashMap<String, Integer>());
+								depthCHH.get(region).put("WATSON", 0);
+								depthCHH.get(region).put("CRICK", 0);
+						}
+						
+						// value accumulation
+						// accumulates methylated cytosines
+					
+						String strand = call.getStrand().name();//tokens[2];
+						String methylationContext = call.getContext().name();//tokens[3];
+						int depth = call.getDepth();//Integer.parseInt(tokens[4]);
+						int methylation =call.getCytosines();// Integer.parseInt(tokens[6]);
+
+						// accumulates new values for the current
+						// annotated region
+						switch (methylationContext) {
+						case "CG":
+							mCG.get(region).put(strand, mCG.get(region).get(strand) + methylation);
+							depthCG.get(region).put(strand, depthCG.get(region).get(strand) + depth);
+							break;
+
+						case "CHG":
+							mCHG.get(region).put(strand, mCHG.get(region).get(strand) + methylation);
+							depthCHG.get(region).put(strand, depthCHG.get(region).get(strand) + depth);
+							break;
+
+						case "CHH":
+							mCHH.get(region).put(strand, mCHH.get(region).get(strand) + methylation);
+							depthCHH.get(region).put(strand, depthCHH.get(region).get(strand) + depth);
+							break;
+
+						default:
+							System.out.print("[Invalid methylation context]: ");
+							System.out.println(line);
+						}
+
+					}
+				} // if(!tokens[columnOfInterest].equals("N/A")
+
+			} // else{// not in first line (not header line)
+
+		} // while((line=b.readLine())!=null)
+		b.close();
+
+		for (String region: mCG.keySet()) {
+			regionsMethylation.add( 
+					new RegionMethylation(
+							region,
+							mCG.get(region).get("WATSON").intValue(),
+							depthCG.get(region).get("WATSON").intValue(),
+							mCHG.get(region).get("WATSON").intValue(),
+							depthCHG.get(region).get("WATSON").intValue(),
+							mCHH.get(region).get("WATSON").intValue(),
+							depthCHH.get(region).get("WATSON").intValue(),
+							mCG.get(region).get("CRICK").intValue(),
+							depthCG.get(region).get("CRICK").intValue(),
+							mCHG.get(region).get("CRICK").intValue(),
+							depthCHG.get(region).get("CRICK").intValue(),
+							mCHH.get(region).get("CRICK").intValue(),
+							depthCHH.get(region).get("CRICK").intValue()
+							
+					));
+			
+		}
 		
-		//mCHG
-		result=(double)mCHG.get("WATSON")/(double)depthCHG.get("WATSON");
-		buf.append("\t").append(mCHG.get("WATSON")).append("\t").append(depthCHG.get("WATSON")).append("\t").append(df.format(result));
-		result=(double)mCHG.get("CRICK")/(double)depthCHG.get("CRICK");
-		buf.append("\t").append(mCHG.get("CRICK")).append("\t").append(depthCHG.get("CRICK")).append("\t").append(df.format(result));
-		result=(double)(mCHG.get("WATSON")+mCHG.get("CRICK"))/(double)(depthCHG.get("WATSON")+depthCHG.get("CRICK"));
-		buf.append("\t").append(mCHG.get("WATSON")+mCHG.get("CRICK")).append("\t").append(depthCHG.get("WATSON")+depthCHG.get("CRICK")).append("\t").append(df.format(result));
-		
-		//mCHH
-		result=(double)mCHH.get("WATSON")/(double)depthCHH.get("WATSON");
-		buf.append("\t").append(mCHH.get("WATSON")).append("\t").append(depthCHH.get("WATSON")).append("\t").append(df.format(result));
-		result=(double)mCHH.get("CRICK")/(double)depthCHH.get("CRICK");
-		buf.append("\t").append(mCHH.get("CRICK")).append("\t").append(depthCHH.get("CRICK")).append("\t").append(df.format(result));
-		result=(double)(mCHH.get("WATSON")+mCHH.get("CRICK"))/(double)(depthCHH.get("WATSON")+depthCHH.get("CRICK"));
-		buf.append("\t").append(mCHH.get("WATSON")+mCHH.get("CRICK")).append("\t").append(depthCHH.get("WATSON")+depthCHH.get("CRICK")).append("\t").append(df.format(result));
-		
-		w.write(buf.toString());
-		w.newLine();
+		return regionsMethylation;
 	}
+
 
 	private static void sortSAM(File sam, File output) throws InterruptedException, IOException{
 		//sort the sam
