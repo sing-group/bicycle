@@ -31,10 +31,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.security.Permission;
-import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,6 +57,18 @@ public class MethylationAnalysis {
 		this.project = p;
 	}
 
+	public Project getProject() {
+		return project;
+	}
+	
+	public File getMethylcytosinesFile(Reference reference, Sample sample){
+		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+".methylcytosines");
+	}
+	
+	public File getMethylcytosinesVCFFile(Reference reference, Sample sample){
+		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+".methylcytosines.vcf");
+	}
+	
 	public File getMethylationFile(Strand strand, Reference reference,
 			Sample sample) {
 		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+"_"+strand.name()+".methylation");
@@ -125,14 +135,6 @@ public class MethylationAnalysis {
 			double watsonError, double crickError) throws IOException, InterruptedException{
 		
 		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, ErrorRateMode.FIXED, "", watsonError, crickError, bedFiles);
-	}
-	
-	public File getMethylcytosinesFile(Reference reference, Sample sample){
-		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+".methylcytosines");
-	}
-	
-	public File getMethylcytosinesVCFFile(Reference reference, Sample sample){
-		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+".methylcytosines.vcf");
 	}
 	
 	private void analyze(Reference reference, 

@@ -46,7 +46,7 @@ public class BicycleApplication extends CLIApplication {
 		commands.add(new ReferenceIndexingCommand());
 		commands.add(new BowtieAlignmentCommand());
 		commands.add(new MethylationAnalysisCommand());
-		
+		commands.add(new DifferentialMethylationAnalysisCommand());		
 		return commands;
 	}
 

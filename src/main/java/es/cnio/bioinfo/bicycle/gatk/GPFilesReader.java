@@ -22,6 +22,7 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 package es.cnio.bioinfo.bicycle.gatk;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -52,11 +53,9 @@ public class GPFilesReader{
 		
 		i = 0;
 		for (BufferedReader reader : readers){
-			current[i++] = reader.readLine();
+			current[i++] = readLine(reader);
 		}
 	}
-	
-	
 	
 	public String readLine() throws IOException{
 		String minimum = null;
@@ -95,13 +94,22 @@ public class GPFilesReader{
 			i++;
 		}
 		if (minimum != null){
-			this.current[whoIsMinimum] = this.readers[whoIsMinimum].readLine();
+			this.current[whoIsMinimum] = readLine(this.readers[whoIsMinimum]);
 			this.lastLineReaderIndex = whoIsMinimum;
 		} else {
 			this.lastLineReaderIndex = -1;
 		}
 		
 		return minimum;
+	}
+
+	private String readLine(BufferedReader reader) throws IOException {
+		String line = null;
+		do {
+			line = reader.readLine();
+		} while (line != null && line.startsWith("#"));
+		
+		return line;
 	}
 	
 	/**

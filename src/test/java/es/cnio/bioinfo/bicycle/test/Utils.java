@@ -147,6 +147,10 @@ public class Utils {
 		return getClassesPath()+"testdata"+File.separator+"BED";
 	}
 	
+	public static String getMethylcytosinesDirectory(){
+		return getClassesPath()+"testdata"+File.separator+"METHYLCYTOSINES_FILES";
+	}
+	
 	private static String getProperty(String prop) throws IOException{
 		//first, look in system properties, else look in configuration file
 		String value = System.getProperty(prop);
