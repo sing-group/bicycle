@@ -58,9 +58,11 @@ import org.apache.commons.math.distribution.BinomialDistributionImpl;
 
 import es.cnio.bioinfo.bicycle.gatk.Strand;
 import es.cnio.bioinfo.pileline.core.IntervalsIndex;
+import es.cnio.bioinfo.pileline.core.IntervalsIndexFactory;
 import es.cnio.bioinfo.pileline.io.LineFilter;
 import es.cnio.bioinfo.pileline.refgenomeindex.GenomeIndex;
 import es.cnio.bioinfo.pileline.refgenomeindex.GenomeIndexBuilder;
+import es.cnio.bioinfo.pileline.refgenomeindex.GenomeIndexFactory;
 
 /**
 A pipeline for methylation analysis
@@ -1701,7 +1703,7 @@ public class MethylSeqOperations {
 				
 				
 				if(bedFiles!=null) for (String bed: bedFiles){					
-					bedIndexes.add(new IntervalsIndex(bed, new BufferedReader(new FileReader(new File(bedFilesDirectory+bed))), 1, 2, 3, 1, false));
+					bedIndexes.add(IntervalsIndexFactory.createIntervalsIndex(bed, new File(bedFilesDirectory+bed), 1, 2, 3, 1, false));
 				}
 				
 				for (String ref: refNames){
@@ -1928,10 +1930,10 @@ public class MethylSeqOperations {
 			File indexFile =new File(directory+"/"+file.getName()+".genindex"); 
 			if (!indexFile.exists()){
 				System.out.println("creating index "+indexFile.getAbsolutePath());
-				GenomeIndexBuilder.buildGenome(file, indexFile);
+				GenomeIndexBuilder.buildGenome(file, indexFile, null);
 			}
 			try{
-				GenomeIndex index =  new GenomeIndex(indexFile);
+				GenomeIndex index =  GenomeIndexFactory.createGenomeIndex(indexFile);
 				return index;
 			}catch(Exception e){
 				System.err.println("[ERROR]: Genome index file seems to be corrupted: "+indexFile.getAbsolutePath()+". Re-building index.");
@@ -2470,27 +2472,25 @@ public class MethylSeqOperations {
 				if (!firstAnnotation) annotation.append("\t");
 				else firstAnnotation = false;
 				
-				List<es.cnio.bioinfo.pileline.core.Interval> intervals = index.getIntervals(seq, pos, 0, false);
-				if (intervals.size()==0){
-					annotation.append("NULL");
-				}else{
-					boolean firstInterval = true;
-					int count=0;
-					for (es.cnio.bioinfo.pileline.core.Interval interval : intervals){
-						String[] dataSplit = interval.getData().split("\t"); 
-						if ((dataSplit.length<3) || ((dataSplit[2].equals("+") && isCT) || (dataSplit[2].equals("-") && !isCT))){
-							if (!firstInterval){
-								annotation.append(":");
-							}else{
-								firstInterval = false;
-							}
-							annotation.append(interval.getData().replaceAll("\t","__"));
-							count++;
+				Iterator<es.cnio.bioinfo.pileline.core.Interval> intervals = index.getIntervals(seq, pos, 0, false);
+				
+				boolean firstInterval = true;
+				int count=0;
+				while (intervals.hasNext()){
+					es.cnio.bioinfo.pileline.core.Interval interval = intervals.next();
+					String[] dataSplit = interval.getData().split("\t"); 
+					if ((dataSplit.length<3) || ((dataSplit[2].equals("+") && isCT) || (dataSplit[2].equals("-") && !isCT))){
+						if (!firstInterval){
+							annotation.append(":");
+						}else{
+							firstInterval = false;
 						}
+						annotation.append(interval.getData().replaceAll("\t","__"));
+						count++;
 					}
-					if (count==0){
-						annotation.append("NULL");
-					}
+				}
+				if (count==0){
+					annotation.append("NULL");
 				}
 				
 				
