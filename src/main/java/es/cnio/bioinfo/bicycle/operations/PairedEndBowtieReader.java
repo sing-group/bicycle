@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import es.cnio.bioinfo.bicycle.Sample;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 
 
@@ -40,18 +41,24 @@ import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
  * @author lipido
  *
  */
-class PairedEndBowtieReader extends BufferedReader{
+class PairedEndBowtieReader extends ReadsReader{
 
 	private BufferedReader mate1;
 	private BufferedReader mate2;
 	private boolean isDirectional;
-	public PairedEndBowtieReader(BufferedReader mate1fastq, BufferedReader mate2fastq, boolean isDirectional) {
-		super(mate1fastq); //we must call super constructor, but this is only to avoid npe
+	
+	private boolean skipUnconverted = false;
+	public PairedEndBowtieReader(Sample sample, BufferedReader mate1fastq, BufferedReader mate2fastq, boolean isDirectional) {
+		this(sample, mate1fastq, mate2fastq, isDirectional, false);
+	}
+	
+	public PairedEndBowtieReader(Sample sample, BufferedReader mate1fastq, BufferedReader mate2fastq, boolean isDirectional, boolean skipUnconverted) {
+		super(sample, mate1fastq); //we must call super constructor, but this is only to avoid npe
 		this.mate1 = mate1fastq;
 		this.mate2 = mate2fastq;
 		this.isDirectional = isDirectional;
+		this.skipUnconverted = skipUnconverted;
 	}
-	
 	private Queue<String> nextString = new LinkedList<String>();
 	
 	@Override
@@ -59,68 +66,77 @@ class PairedEndBowtieReader extends BufferedReader{
 		if (!nextString.isEmpty()) {
 			return nextString.poll();
 		}
+		String m1ReadName = null;
+		String m1Sequence = null;
+		String m1Qual = null;
+		String m2ReadName = null;
+		String m2Sequence = null;
+		String m2Qual = null;
+
+		do {
+			//try to read four lines from each stream
+			m1ReadName = mate1.readLine();
+			if (m1ReadName == null) return null;
+			
+			m1Sequence = mate1.readLine();
+			if (m1Sequence == null) return null;
+			
+			//throw away
+			if (mate1.readLine()==null) return null;
+			
+			m1Qual = mate1.readLine();
+			if (m1Qual == null) return null;
+			
+			m2ReadName = mate2.readLine();
+			if (m2ReadName == null) return null;
+			
+			m2Sequence = mate2.readLine();
+			if (m2Sequence == null) return null;
+			
+			//throw away
+			if (mate2.readLine()==null) return null;
+			
+			m2Qual = mate2.readLine();
+			if (m2Qual == null) return null;
 		
-		//try to read four lines from each stream
-		String m1ReadName = mate1.readLine();
-		if (m1ReadName == null) return null;
+		} while (shouldSkip(m1ReadName) || shouldSkip(m2ReadName));
 		
-		String m1Sequence = mate1.readLine();
-		if (m1Sequence == null) return null;
-		
-		//throw away
-		if (mate1.readLine()==null) return null;
-		
-		String m1Qual = mate1.readLine();
-		if (m1Qual == null) return null;
-		
-		String m2ReadName = mate2.readLine();
-		if (m2ReadName == null) return null;
-		
-		String m2Sequence = mate2.readLine();
-		if (m2Sequence == null) return null;
-		
-		//throw away
-		if (mate2.readLine()==null) return null;
-		
-		String m2Qual = mate2.readLine();
-		if (m2Qual == null) return null;
-		
-		String[] m1NameTokens = m1ReadName.split("[|][|]");
+		/*String[] m1NameTokens = m1ReadName.split("[|][|]");
 		String[] m2NameTokens = m2ReadName.split("[|][|]");
-		
+		*/
 		
 		StringBuilder toretb = new StringBuilder();
 		
-		toretb.append(m1NameTokens[0].substring(1)).
+		toretb.append(m1ReadName.substring(1).replace(' ', '_')).
 		append("||").
-		append(m1NameTokens[1]). 
+		append(m1Sequence). 
 		append("||").
 		//append(getReverseComplementary(m2NameTokens[1])).
-		append(m2NameTokens[1]).
+		append(m2Sequence).
 		append("\t").
-		append(m1Sequence). 
+		append(m1Sequence.replaceAll("C", "T")). 
 		append("\t").
 		append(m1Qual). 
 		append("\t").
-		append(m2NameTokens[1].replaceAll("G", "A")). 
+		append(m2Sequence.replaceAll("G", "A")). 
 		
 		append("\t").
 		append(m2Qual);
 		
 		if (!this.isDirectional) {
 			StringBuilder nonDirectionalSB = new StringBuilder();
-			nonDirectionalSB.append(m1NameTokens[0].substring(1)).
+			nonDirectionalSB.append(m1ReadName.substring(1).replace(' ', '_')).
 			append("||").
-			append(m1NameTokens[1]). 
+			append(m1Sequence). 
 			append("||").
 			//append(getReverseComplementary(m2NameTokens[1])).
-			append(m2NameTokens[1]).
+			append(m2Sequence).
 			append("\t").
-			append(m1NameTokens[1].replaceAll("G", "A")).
+			append(m1Sequence.replaceAll("G", "A")).
 			append("\t").
 			append(m1Qual). 
 			append("\t").
-			append(m2Sequence).
+			append(m2Sequence.replaceAll("C", "T")).
 			
 			append("\t").
 			append(m2Qual);
@@ -129,6 +145,10 @@ class PairedEndBowtieReader extends BufferedReader{
 		}
 		
 		return toretb.toString();
+	}
+
+	private boolean shouldSkip(String readName) {
+		return this.skipUnconverted && this.hasUnconvertedBarcode(readName);
 	}
 	
 }

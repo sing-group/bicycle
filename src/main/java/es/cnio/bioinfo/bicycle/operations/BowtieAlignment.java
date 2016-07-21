@@ -124,7 +124,8 @@ public class BowtieAlignment {
 	}
 	public void performBowtieAlignment(
 			final Sample sample,			
-			final Reference reference,			
+			final Reference reference,
+			boolean skipUnconverted,
 			int threadsNumber,
 			
 			/* bowtie params */
@@ -135,11 +136,12 @@ public class BowtieAlignment {
 			
 			final int chunkmbs,
 			final Quals solexaQ) throws IOException{
-		performBowtieAlignment(sample, reference, threadsNumber, e, l, n, chunkmbs, solexaQ, 0, 250);
+		performBowtieAlignment(sample, reference, skipUnconverted, threadsNumber, e, l, n, chunkmbs, solexaQ, 0, 250);
 	}
 	public void performBowtieAlignment(
 			final Sample sample,			
-			final Reference reference,			
+			final Reference reference,
+			boolean skipUnconverted,
 			int threadsNumber,
 			
 			/* bowtie params */
@@ -185,66 +187,49 @@ public class BowtieAlignment {
 		
 		
 		if (!sample.isPaired()){
-			final List<File> readsFiles = new LinkedList<File>();
-			for(File readFile : sample.getReadsFiles()){
-				File bisulfitedRead = sb.getBisulfitedFile(readFile);
-				if (!bisulfitedRead.exists()){
-					throw new IllegalArgumentException("cannot find in-silico bifulfited read file: "+bisulfitedRead+". Perform read bisulfitation firsrt");
-				}
-				readsFiles.add(bisulfitedRead);
-			}
-			
 			if (!sample.isDirectional()) {
-				//cokus
+				//non-directional (cokus)
 				streamsWATSON = new LinkedList<BufferedReader>();
-				for (BufferedReader reader : FastqSplitter.splitfastq(readsFiles, threads)) {
-					streamsWATSON.add(new GtoADuplicatorReader(reader));
+				for (BufferedReader reader : FastqSplitter.splitfastq(sample.getReadsFiles(), threads)) {
+					streamsWATSON.add(new GtoADuplicatorReader(new CtoTReader(sample, reader, skipUnconverted)));
 				}
 				streamsCRICK = new LinkedList<BufferedReader>();
-				for (BufferedReader reader : FastqSplitter.splitfastq(readsFiles, threads)) {
-					streamsCRICK.add(new GtoADuplicatorReader(reader));
+				for (BufferedReader reader : FastqSplitter.splitfastq(sample.getReadsFiles(), threads)) {
+					streamsCRICK.add(new GtoADuplicatorReader(new CtoTReader(sample, reader, skipUnconverted)));
 				}
 				
 				
 			} else {
-				streamsWATSON = FastqSplitter.splitfastq(readsFiles, threads);
-				streamsCRICK = FastqSplitter.splitfastq(readsFiles, threads);
+				//non-directional (cokus)
+				streamsWATSON = new LinkedList<BufferedReader>();
+				for (BufferedReader reader : FastqSplitter.splitfastq(sample.getReadsFiles(), threads)) {
+					streamsWATSON.add(new CtoTReader(sample, reader, skipUnconverted));
+				}
+				streamsCRICK = new LinkedList<BufferedReader>();
+				for (BufferedReader reader : FastqSplitter.splitfastq(sample.getReadsFiles(), threads)) {
+					streamsCRICK.add(new CtoTReader(sample, reader, skipUnconverted));
+				}
+				
 			}
 		}else {
 			//paired end
-			final List<File> readsFilesM1 = new LinkedList<File>();
-			final List<File> readsFilesM2 = new LinkedList<File>();
-			for(File readFile : sample.getReadsMate1Files()){
-				File bisulfitedRead = sb.getBisulfitedFile(readFile);
-				if (!bisulfitedRead.exists()){
-					throw new IllegalArgumentException("cannot find in-silico bifulfited read file: "+bisulfitedRead+". Perform read bisulfitation firsrt");
-				}
-				readsFilesM1.add(bisulfitedRead);
-			}
-			for(File readFile : sample.getReadsMate2Files()){
-				File bisulfitedRead = sb.getBisulfitedFile(readFile);
-				if (!bisulfitedRead.exists()){
-					throw new IllegalArgumentException("cannot find in-silico bifulfited read file: "+bisulfitedRead+". Perform read bisulfitation firsrt");
-				}
-				readsFilesM2.add(bisulfitedRead);
-			}
 			
 			//streamsWATSON
 			streamsWATSON = new LinkedList<BufferedReader>();
-			List<BufferedReader> mate1Readers = FastqSplitter.splitfastq(readsFilesM1, threads);
-			List<BufferedReader> mate2Readers = FastqSplitter.splitfastq(readsFilesM2, threads);
+			List<BufferedReader> mate1Readers = FastqSplitter.splitfastq(sample.getReadsMate1Files(), threads);
+			List<BufferedReader> mate2Readers = FastqSplitter.splitfastq(sample.getReadsMate2Files(), threads);
 			
 			for (int i = 0; i<mate1Readers.size(); i++){
-				streamsWATSON.add(new PairedEndBowtieReader(mate1Readers.get(i), mate2Readers.get(i), sample.isDirectional()));
+				streamsWATSON.add(new PairedEndBowtieReader(sample, mate1Readers.get(i), mate2Readers.get(i), sample.isDirectional(), skipUnconverted));
 			}
 			
 			//streamsCRICK
 			streamsCRICK = new LinkedList<BufferedReader>();
-			mate1Readers = FastqSplitter.splitfastq(readsFilesM1, threads);
-			mate2Readers = FastqSplitter.splitfastq(readsFilesM2, threads);
+			mate1Readers = FastqSplitter.splitfastq(sample.getReadsMate1Files(), threads);
+			mate2Readers = FastqSplitter.splitfastq(sample.getReadsMate2Files(), threads);
 			
 			for (int i = 0; i<mate1Readers.size(); i++){
-				streamsCRICK.add(new PairedEndBowtieReader(mate1Readers.get(i), mate2Readers.get(i), sample.isDirectional()));
+				streamsCRICK.add(new PairedEndBowtieReader(sample, mate1Readers.get(i), mate2Readers.get(i), sample.isDirectional(), skipUnconverted));
 			}
 		}
 		
@@ -314,7 +299,6 @@ public class BowtieAlignment {
 							logger.info("Start read feeding to alignment against "+ref+" log file:"+logFileName);
 							try {
 									while ((readsLine=readsStream.readLine())!=null && !shouldStop){
-									
 									ps.println(readsLine);
 									
 								}

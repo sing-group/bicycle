@@ -67,10 +67,10 @@ public class NonDirectionalAnalysisTest {
 		}
 		
 		for (Sample sample : p.getSamples()){
-			SampleBisulfitation sb = new SampleBisulfitation(sample);
-			sb.computeSampleBisulfitation(true);
+			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
+			sb.computeSampleBisulfitation(true);*/
 			for (Reference reference : p.getReferences()){
-				ba.performBowtieAlignment(sample, reference, 1, 140, 20, 0, 64, Quals.BEFORE_1_3);
+				ba.performBowtieAlignment(sample, reference, false, 1, 140, 20, 0, 64, Quals.BEFORE_1_3);
 			}
 		}
 			
@@ -133,7 +133,7 @@ public class NonDirectionalAnalysisTest {
 				}
 			}
 		} finally {
-			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
+		//	Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 	}
 

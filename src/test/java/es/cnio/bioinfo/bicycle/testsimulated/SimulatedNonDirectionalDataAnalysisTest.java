@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.apache.commons.math.stat.inference.TestUtils;
 import org.junit.Test;
 
 import es.cnio.bioinfo.bicycle.Project;
@@ -66,10 +65,10 @@ public class SimulatedNonDirectionalDataAnalysisTest {
 			ba.buildBowtieIndex(ref);
 		}
 		for (Sample sample : p.getSamples()){
-			SampleBisulfitation sb = new SampleBisulfitation(sample);
-			sb.computeSampleBisulfitation(true);
+			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
+			sb.computeSampleBisulfitation(true);*/
 			for (Reference reference : p.getReferences()){
-				ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
+				ba.performBowtieAlignment(sample, reference, false, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
 			}
 		}
 			

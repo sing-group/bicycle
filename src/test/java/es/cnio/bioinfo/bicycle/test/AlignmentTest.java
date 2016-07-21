@@ -134,7 +134,7 @@ public class AlignmentTest {
 				SampleBisulfitation sb = new SampleBisulfitation(sample);
 				sb.computeSampleBisulfitation(true);
 				for (Reference reference : p.getReferences()){
-					ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
+					ba.performBowtieAlignment(sample, reference, false, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
 				}
 			}
 			

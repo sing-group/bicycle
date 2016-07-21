@@ -57,6 +57,8 @@ public class BowtieAlignmentCommand extends ProjectCommand {
 		int I = Integer.parseInt(parameters.get(this.findOption("I")));
 		int X = Integer.parseInt(parameters.get(this.findOption("X")));
 		
+		boolean skipUnconverted = parameters.containsKey(this.findOption("u"));
+		
 		BowtieAlignment.PairedEndOrientation orientation = BowtieAlignment.PairedEndOrientation.FR;
 
 		/*if (parameters.containsKey(this.findOption("rf"))){
@@ -81,7 +83,7 @@ public class BowtieAlignmentCommand extends ProjectCommand {
 		BowtieAlignment ba = new BowtieAlignment(project);
 		for (Sample sample: project.getSamples()){
 			for (Reference reference: project.getReferences()){
-				ba.performBowtieAlignment(sample, reference, t, e, l, n, c, quals, I, X);
+				ba.performBowtieAlignment(sample, reference, skipUnconverted, t, e, l, n, c, quals, I, X);
 			}
 		}
 	}
@@ -92,6 +94,9 @@ public class BowtieAlignmentCommand extends ProjectCommand {
 		
 		toret.add(new DefaultValuedOption("threads", "t", 
 				"number of threads per sample and ref alignment", "4"));
+		
+		toret.add(new Option("skip-unconverted-barcodes", "b", 
+				"skip reads with unconverted barcodes. The barcode should be on the name of the read files and delimited by '_' and '-'. For example, a valid reads file name would be: AML_s_8_TGtATT-reads.fastq, so the barcode is TGtATT", true, false));
 		
 		toret.add(new DefaultValuedOption("bowtie-maqerr", "e", 
 				"Maximum permitted total of quality values at all mismatched read positions throughout the entire alignment, not just in the \"seed\"", "140"));

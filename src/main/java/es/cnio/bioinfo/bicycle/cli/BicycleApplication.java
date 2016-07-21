@@ -42,7 +42,7 @@ public class BicycleApplication extends CLIApplication {
 		List<Command> commands = new LinkedList<Command>();
 		commands.add(new CreateProjectCommand());
 		commands.add(new ReferenceBisulfitationCommand());
-		commands.add(new ReadsBisulfitationCommand());
+		//commands.add(new ReadsBisulfitationCommand());
 		commands.add(new ReferenceIndexingCommand());
 		commands.add(new BowtieAlignmentCommand());
 		commands.add(new MethylationAnalysisCommand());

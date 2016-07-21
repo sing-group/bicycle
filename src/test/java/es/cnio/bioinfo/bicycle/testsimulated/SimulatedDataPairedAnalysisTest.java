@@ -64,10 +64,10 @@ public class SimulatedDataPairedAnalysisTest {
 			ba.buildBowtieIndex(ref);
 		}
 		for (Sample sample : p.getSamples()){
-			SampleBisulfitation sb = new SampleBisulfitation(sample);
-			sb.computeSampleBisulfitation(true);
+			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
+			sb.computeSampleBisulfitation(true);*/
 			for (Reference reference : p.getReferences()){
-				ba.performBowtieAlignment(sample, reference, 4, 140, 20, 0, 64, Quals.BEFORE_1_3, 0, 500);
+				ba.performBowtieAlignment(sample, reference, false, 4, 140, 20, 0, 64, Quals.BEFORE_1_3, 0, 500);
 			}
 		}
 			

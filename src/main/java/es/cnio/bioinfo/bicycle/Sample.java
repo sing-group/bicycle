@@ -88,6 +88,7 @@ public class Sample {
 		return Collections.unmodifiableList(readsFilesM2);
 		
 	}
+	
 	public Project getProject() {
 		return project;
 	}
