@@ -199,7 +199,7 @@ public class Project {
 			logger.info("[OK]");
 			
 			p.samples = Sample.buildSamples(p, p.paired, p.directional, p.mate1regexp);
-			System.err.println("samle size: "+p.samples.size());
+			logger.info("Num of samples: "+p.samples.size());
 		}
 		else{
 			String error = "unable to find "+readsDirectory.getAbsolutePath();
@@ -235,11 +235,9 @@ public class Project {
 					p.samtoolsDirectory=new File(value);
 				else if (key.equals("paired")){
 					p.paired = Boolean.parseBoolean(value);
-					System.out.println(value);
 				}
 				else if (key.equals("directional")){
 					p.directional = Boolean.parseBoolean(value);
-					System.out.println(value);
 				}
 				else if (key.equals("mate1regexp"))
 					p.mate1regexp = value;

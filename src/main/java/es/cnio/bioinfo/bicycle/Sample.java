@@ -175,4 +175,9 @@ public class Sample {
 		return sample.getName().equals(this.getName()) && sample.readsFiles.equals(this.readsFiles);
 	}
 	
+	@Override
+	public String toString() {
+		return this.getName();
+	}
+	
 }

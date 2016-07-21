@@ -32,6 +32,7 @@ import java.io.PrintStream;
 import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,7 +103,7 @@ public class BowtieAlignment {
 	}
 
 	private void buildBowtieIndex(File bisulfitedReference) {
-		logger.info("Bowtie: indexing "+bisulfitedReference+"...... ");
+		logger.info("Building bowtie index for "+bisulfitedReference);
 		String [] command=new String[]{this.project.getBowtieDirectory().getAbsolutePath()+File.separator+("bowtie-build"),bisulfitedReference.getAbsolutePath(),bisulfitedReference.getAbsolutePath()};
 		
 		int result=Tools.executeProcessWait(command,null,null);	
@@ -114,7 +115,6 @@ public class BowtieAlignment {
 			for(int j=0;j<command.length;j++)
 				commandString+=command[j]+" ";
 			
-			logger.severe("\nError: "+commandString);
 			throw new RuntimeException("Error during bowtie index build. Command was: "+commandString);
 		}
 	}
@@ -180,8 +180,6 @@ public class BowtieAlignment {
 		int threads = threadsNumber/2;
 		if (threads == 0) threads = 1;
 		
-		SampleBisulfitation sb = new SampleBisulfitation(sample);		
-		
 		List<BufferedReader> streamsWATSON = null;
 		List<BufferedReader> streamsCRICK = null;
 		
@@ -200,7 +198,7 @@ public class BowtieAlignment {
 				
 				
 			} else {
-				//non-directional (cokus)
+				//directional (lister)
 				streamsWATSON = new LinkedList<BufferedReader>();
 				for (BufferedReader reader : FastqSplitter.splitfastq(sample.getReadsFiles(), threads)) {
 					streamsWATSON.add(new CtoTReader(sample, reader, skipUnconverted));
@@ -313,7 +311,7 @@ public class BowtieAlignment {
 					}.start();
 					
 					try {
-						while ((line=stdOut.readLine())!=null){						
+						while ((line=stdOut.readLine())!=null){		
 							out.processLine(line);						
 						}
 					} catch (IOException e1) {						

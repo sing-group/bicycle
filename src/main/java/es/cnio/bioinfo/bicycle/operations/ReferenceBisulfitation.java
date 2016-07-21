@@ -66,7 +66,7 @@ public class ReferenceBisulfitation {
 		
 		
 		File inputFile = reference.getReferenceFile();
-		logger.info("Performing "+replacement.name()+" in-silico bisulfitation for "+inputFile+"...... ");
+		logger.info("Performing "+replacement.name()+" in-silico bisulfitation for "+inputFile);
 		this.project.addProperty(BISULFITED_DIR_PROPERTY+replacement.name(), onWorkingDir?project.getWorkingDirectory().getAbsolutePath():project.getReferenceDirectory().getAbsolutePath());
 		this.project.saveProject();
 		

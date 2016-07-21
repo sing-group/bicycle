@@ -24,9 +24,13 @@ package es.cnio.bioinfo.bicycle.cli;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 public abstract class CLIApplication {
-
+	private static Logger logger = Logger.getLogger(CLIApplication.class.getSimpleName());
+	
 	protected List<Command> commands = buildCommands();
 	private HashMap<String, Command> commandsByName = new HashMap<String, Command>();
 	protected abstract List<Command> buildCommands(); //factory method
@@ -78,14 +82,14 @@ public abstract class CLIApplication {
 					this.beforeRun();
 					this.command.execute(this, this.parameters);
 				}catch(ParsingException e){
-					System.err.println("Error parsing command: "+e.getMessage());
+					logger.log(Level.SEVERE, "Error parsing command", e);
 					printCommandHelp(this.command);
 				}catch(Exception e){
-					System.err.println("Error during execution: "+e.getMessage());
+					logger.log(Level.SEVERE, "Error during execution", e);
 					e.printStackTrace();
 				}
 			}else{
-				System.err.println("Command "+args[0]+" not found");
+				logger.log(Level.SEVERE, "Command "+args[0]+" not found");
 				printHelp();
 			}
 		

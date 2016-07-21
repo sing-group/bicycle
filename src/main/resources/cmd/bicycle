@@ -1,2 +1,4 @@
 #!/bin/bash
-java -jar ../bicycle-${project.version}.jar "$@"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+java -Djava.util.logging.config.file=$DIR/logging.properties -jar $DIR/../bicycle-${project.version}.jar "$@"

@@ -52,6 +52,12 @@ public class DifferentialMethylationAnalysis {
 			List<Sample> controlSamples,
 			File bedFile) throws NumberFormatException, IOException
 	{
+		logger.info("Performing differential methylation at region level (DMR)");
+		logger.info("reference: "+reference.getReferenceFile());
+		logger.info("treament samples: "+treatmentSamples);
+		logger.info("control samples: "+controlSamples);
+		logger.info("regions: "+bedFile);
+		
 		
 		File outputFile = getDifferentiallyMethylatedRegionsFile(reference, treatmentSamples, controlSamples, bedFile);
 		
@@ -68,6 +74,7 @@ public class DifferentialMethylationAnalysis {
 		
 		List<Double> pValues = new LinkedList<Double>();
 		
+		logger.info("Computing DMRs...");
 		for (Interval interval : regionCounts.keySet()) {
 			
 			MethylationCounts regionCount = regionCounts.get(interval);
@@ -82,7 +89,11 @@ public class DifferentialMethylationAnalysis {
 			
 		}
 		
+		logger.info("[OK]");
+		
+		logger.info("Writing output file with adjusted p-values");
 		createOutputFileWithAdjustedPValues(tempFile, pValues);
+		logger.info("[OK]");
 	}
 
 	public File getDifferentiallyMethylatedRegionsFile(Reference reference, List<Sample> treatmentSamples,
@@ -158,6 +169,11 @@ public class DifferentialMethylationAnalysis {
 			List<Sample> controlSamples) throws IOException
 	{
 		
+		logger.info("Performing differential methylation at base level (DMC)");
+		logger.info("reference: "+reference.getReferenceFile());
+		logger.info("treament samples: "+treatmentSamples);
+		logger.info("control samples: "+controlSamples);
+		
 		File outputFile = getDifferentiallyMethylatedCytosinesFile(reference, treatmentSamples, controlSamples);
 		this.outputFile = outputFile;
 		
@@ -188,6 +204,7 @@ public class DifferentialMethylationAnalysis {
 		
 		List<Double> pValues = new LinkedList<>();
 		
+		logger.info("Computing DMCs...");
 		while ((line = reader.readLine()) != null) {
 			if (line.startsWith("#"))
 				continue;
@@ -216,8 +233,11 @@ public class DifferentialMethylationAnalysis {
 			processBase(currentSeq, currentPos, treatmentSamples, controlSamples, currentBaseCalls, pValues, outTemp);
 		}
 		outTemp.close();
-
+		logger.info("[OK]");
+		
+		logger.info("Writing output file with adjusted p-values");
 		createOutputFileWithAdjustedPValues(tempFile, pValues);
+		logger.info("[OK]");
 	}
 
 	public File getDifferentiallyMethylatedCytosinesFile(Reference reference, List<Sample> treatmentSamples,
@@ -271,7 +291,7 @@ public class DifferentialMethylationAnalysis {
 
 	public void writeSampleNames(List<Sample> treatmentSamples, List<Sample> controlSamples, PrintStream outTemp) {
 		for (Sample s : treatmentSamples) {
-			outTemp.print("\t"+s.getName()+" (tratment)");
+			outTemp.print("\t"+s.getName()+" (treatment)");
 		}
 		for (Sample s : controlSamples) {
 			outTemp.print("\t"+s.getName()+" (control)");
