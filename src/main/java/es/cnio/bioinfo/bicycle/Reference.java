@@ -59,7 +59,7 @@ public class Reference {
 	
 	public List<String> getSequenceNames() {
 		try {
-			File index = new File(this.project.getWorkingDirectory()+File.separator+this.referenceFile+".index"); 
+			File index = new File(this.project.getWorkingDirectory()+File.separator+this.referenceFile.getName()+".index"); 
 			if (!index.exists()) {
 					createReferenceIndex(index);
 			}
