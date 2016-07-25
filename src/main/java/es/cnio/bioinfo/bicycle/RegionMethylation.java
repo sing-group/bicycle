@@ -129,12 +129,22 @@ public class RegionMethylation {
 	public static String getMarshallHeader() {
 		final StringBuilder sb = new StringBuilder();
 		
-		sb.append("#Region\tmCG WATSON\tdepthCG WATSON\tCG WATSON methylation\tmCG CRICK\tdepthCG CRICK\tCG CRICK methylation");
+/*		sb.append("#Region\tmCG WATSON\tdepthCG WATSON\tCG WATSON methylation\tmCG CRICK\tdepthCG CRICK\tCG CRICK methylation");
 		sb.append("\tmCG total methylation\tmCG total depth\tCG TOTAL methylation");
 		sb.append("\tmCHG WATSON\tdepthCHG WATSON\tCHG WATSON methylation\tmCHG CRICK\tdepthCHG CRICK\tCHG CRICK methylation");
 		sb.append("\tmCHG total methylation\tmCHG total depth\tCHG TOTAL methylation");
 		sb.append("\tmCHH WATSON\tdepthCHH WATSON\tCHH WATSON methylation\tmCHH CRICK\tdepthCHH CRICK\tCHH CRICK methylation");
 		sb.append("\tmCHH total methylation\tmCHH total depth\tCHH TOTAL methylation");
+*/		
+		//osvaldo replaced some labels here (25jul2016)
+		
+		sb.append("#Region\tmCG WATSON\tdepthCG WATSON\tWMCM CG WATSON\tmCG CRICK\tdepthCG CRICK\tWMCM CG CRICK");
+		sb.append("\tmCG total methylation\tmCG total depth\tWMCM CG TOTAL");
+		sb.append("\tmCHG WATSON\tdepthCHG WATSON\tWMCM CHG WATSON\tmCHG CRICK\tdepthCHG CRICK\tWMCM CHG CRICK");
+		sb.append("\tmCHG total methylation\tmCHG total depth\tWMCM CHG TOTAL");
+		sb.append("\tmCHH WATSON\tdepthCHH WATSON\tWMCM CHH WATSON\tmCHH CRICK\tdepthCHH CRICK\tWMCM CHH CRICK");
+		sb.append("\tmCHH total methylation\tmCHH total depth\tWMCM CHH TOTAL");
+		
 		
 		return sb.toString();
 		
