@@ -4,6 +4,8 @@
 	<groupId>es.cnio.bioinfo</groupId>
 	<artifactId>bicycle</artifactId>
 	<version>1.5.0-SNAPSHOT</version>
+	
+	<description>bicycle (bisulfite-based methylcytosine caller) is a next-generation sequencing bioinformatics pipeline able to perform a full DNA methylation level analysis. More info at the [bicycle](http://sing.ei.uvigo.es/bicycle) project page.</description>
 
 	<properties>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -16,7 +18,23 @@
 
 		<dist.directory>${project.build.directory}/dist</dist.directory>
 	</properties>
+	<developers>
+		<developer>
+			<name>Daniel Glez-Peña (SING Research Group. Informatics Department. University of Vigo)</name>
+		</developer>
+		<developer>
+			<name>Osvaldo Graña (Bioinformatics Unit. CNIO: Spanish National Cancer Research Centre)</name>
+		</developer>
+		<developer>
+			<name>Hugo López-Fernández (SING Research Group. Informatics Department. University of Vigo)</name>
+		</developer>
+	</developers>
 
+	<licenses>
+		<license>
+			<name>GNU Lesser General Public License v3.0</name>
+		</license>
+	</licenses>
 	<repositories>
 		<repository>
 			<id>sing-repository</id>
@@ -25,6 +43,17 @@
 		</repository>
 	</repositories>
 	<pluginRepositories>
+		<pluginRepository>
+			<id>sing-repository</id>
+			<name>SING repository</name>
+			<url>http://sing.ei.uvigo.es/maven2</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</pluginRepository>
 		<pluginRepository>
 			<id>sonatype-public-repository</id>
 			<url>https://oss.sonatype.org/content/groups/public</url>
@@ -253,6 +282,42 @@
 							<unpack>true</unpack>
 							<outputDirectory>${project.build.directory}/test-classes</outputDirectory>
 							<md5>57eee2ba5f0c5ca120c1060366039fad</md5>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.mule.tools</groupId>
+				<artifactId>github-readme-maven-plugin</artifactId>
+				<version>1.0-SNAPSHOT</version>
+				<executions>
+					<execution>
+						<phase>install</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<sections>
+								<section><![CDATA[
+## How it works?
+**bicycle** (_**bi**sulfite-based methyl**cy**tosine **c**al**le**r_) is a next-generation sequencing bioinformatic pipeline aimed to analyze whole genome bisulfite sequencing data. It can process data from directional (Lister) and non-directional (Cokus) bisulfite sequencing protocols, and from single-end and paired-end sequencing, and performs methylation calls for cytosines in CG and non-CG contexts (CHG and CHH).
+
+**bicycle** uses as input the bisulfite sequencing files from the different samples (FASTQ format) and a reference genome (FASTA format). It then performs: **generation and indexing of Watson and Crick bisulfited versions of the reference genome**, **in-silico bisulfitation of sequenced reads**, **read alignment**, **error estimation in bisulfite conversion**, **identification of clonal and ambiguous reads**, **cytosine methylation detection in CG and non-CG contexts, with non-CG to CG context correction when appropriated**, **calculates methylation ratios, beta scores and weighted mean of cytosine methylation status**, and performs **genomic annotation of methylated regions**, and **differential methylation for cytosines (DMC) and genomic regions (DMR)**.
+								]]></section>
+								<section><![CDATA[
+## Requirements
+Bicycle requirements:
+- Operating System: Linux/OSX
+- Java 1.8+
+- Bowtie aligner 0.12.7+
+- samtools 0.1.8+
+								]]></section>
+								<section><![CDATA[
+## Coordinators
+- Florentino Fdez-Riverola ([SING Research Group](http://sing.ei.uvigo.es/). Informatics Department. University of Vigo)
+- David Pisano ([Bioinformatics Unit](http://www.cnio.es/es/grupos/plantillas/presentacion.asp?grupo=50004300). CNIO: Spanish National Cancer Research Centre)
+								]]></section>							
+							</sections>
 						</configuration>
 					</execution>
 				</executions>
