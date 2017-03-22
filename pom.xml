@@ -241,6 +241,7 @@
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>lib/</classpathPrefix>
 							<mainClass>es.cnio.bioinfo.bicycle.cli.Main</mainClass>
+							<useUniqueVersions>false</useUniqueVersions>
 						</manifest>
 					</archive>
 				</configuration>
