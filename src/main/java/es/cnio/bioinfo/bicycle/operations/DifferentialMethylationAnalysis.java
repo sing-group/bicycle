@@ -72,9 +72,17 @@ public class DifferentialMethylationAnalysis {
 		Map<Interval, MethylationCounts> regionCounts = computeMethylationCountsByRegion(reference, treatmentSamples,
 				controlSamples, bedFile);
 		
-		List<Double> pValues = new LinkedList<Double>();
+		List<Double> pValues = new LinkedList<Double>();		
 		
-		logger.info("Computing DMRs...");
+
+		//****************************************************//
+		//modified by Osvaldo, 9Apr2017
+		//adds methylation average values for treatment and control samples.
+		//Additionally it computes a log2FC(treatment average/control average)
+		
+		
+		//OLD way
+		/*logger.info("Computing DMRs...");
 		for (Interval interval : regionCounts.keySet()) {
 			
 			MethylationCounts regionCount = regionCounts.get(interval);
@@ -85,9 +93,141 @@ public class DifferentialMethylationAnalysis {
 			double pValue = this.computePValueForBase(regionCount);
 			pValues.add(pValue);
 			
-			outTemp.println(pValue);
+			outTemp.println(pValue);			
+		}*/
+		
+		
+		//NEW way		
+		int nTreatmentSamples=treatmentSamples.size();
+		int nControlSamples=controlSamples.size();
+		
+		
+		logger.info("Computing DMRs...");
+		for (Interval interval : regionCounts.keySet()) {
 			
+			MethylationCounts regionCount = regionCounts.get(interval);
+			
+			outTemp.print(interval.getData()+"\t"+interval.getSequence()+"\t"+interval.getStart()+"\t"+interval.getStop()+"\t");
+			outTemp.print(regionCount.toString());
+			
+			//added by Osvaldo
+			double treatmentAverage=0.0;
+			double controlAverage=0.0;
+			int counter=0;
+			//splits the methylation line by tab to get individual methylation ratios
+			String[] tokens=regionCount.toString().split("\t");
+			
+			/*Two possible ways of calculating it:
+			 * (1) calculating the ratio of methylation for each sample of each condition (numerator/denominator),
+			 * and then calculating the average of methylation of each condition as the sum of its sample values
+			 * divided by the number of samples.
+			 * treatment average=((sample1 numerator/sample1 denominator) + (sample 2 numerator/sample 2 denominator)) /2
+			 * control average=((sample1 numerator/sample1 denominator) + (sample 2 numerator/sample 2 denominator)) /2 
+			 * Finally, it computes the log2FC (treatment average / control average)
+			 * This way is implemented below
+			 */
+			
+			// FIRST WAY DISCARDED !!!
+			/*for(String token:tokens){// for each methylation ratio
+				
+				//treatment samples
+				if(counter<nTreatmentSamples){
+					//separates values that come represented as a methylation ratio
+					String[] subToken=token.split("/");
+					double numerator=new Double(subToken[0]).doubleValue();
+					double denominator=new Double(subToken[1]).doubleValue();
+					treatmentAverage+=new Double(numerator/denominator).doubleValue();
+					counter++;
+					
+				}else{//control samples
+					//separates values that come represented as a methylation ratio
+					String[] subToken=token.split("/");
+					double numerator=new Double(subToken[0]).doubleValue();
+					double denominator=new Double(subToken[1]).doubleValue();
+					controlAverage+=new Double(numerator/denominator).doubleValue();					
+				}			
+			}
+			
+			treatmentAverage=treatmentAverage/nTreatmentSamples;
+			controlAverage=controlAverage/nControlSamples;
+			
+			double log2FC=Math.log(treatmentAverage/controlAverage)/Math.log(2);
+			outTemp.print(treatmentAverage+"\t");
+			outTemp.print(controlAverage+"\t");
+			outTemp.print(log2FC+"\t");
+			*/
+			/*##################################
+			 * END of type (1) calculation
+			 */
+			
+			
+			/*(2) another different way:
+			 * for each condition, it sums the numerator values of the samples belonging to it and computes
+			 * the average of the numerator values.
+			 * It then sums the denominator values of the samples of the same condition and computes the average
+			 * of the denominator values.
+			 * treatment numerator=(sample1 numerator + sample 2 numerator) / 2
+			 * treatment denominator=(sample1 denominator + sample 2 denominator) / 2
+			 * treatment average=treatment numerator/treatment denominator
+			 * 
+			 * A similar calculaton is done for the control samples. Finally, it computes the
+			 * log2FC (treatment average / control average)
+			 * This second way is implemented below
+			 */
+			
+			// SECOND WAY USED !!!
+			//calculates average values of methylation for treatment and control samples
+			double treatmentNumerator=0.0;
+			double treatmentDenominator=0.0;
+			double controlNumerator=0.0;
+			double controlDenominator=0.0;
+			treatmentAverage=0.0;
+			controlAverage=0.0;
+			counter=0;
+			
+			//calculates average values of methylation for treatment and control samples
+			for(String token:tokens){// for each methylation ratio
+				
+				//treatment samples
+				if(counter<nTreatmentSamples){
+					//separates values that come represented as a methylation ratio
+					String[] subToken=token.split("/");
+					treatmentNumerator+=new Double(subToken[0]).doubleValue();
+					treatmentDenominator+=new Double(subToken[1]).doubleValue();
+					counter++;
+					
+				}else{//control samples
+					//separates values that come represented as a methylation ratio
+					String[] subToken=token.split("/");
+					controlNumerator+=new Double(subToken[0]).doubleValue();
+					controlDenominator+=new Double(subToken[1]).doubleValue();					
+				}			
+			}
+			//computes averages
+			treatmentNumerator=new Double(treatmentNumerator/nTreatmentSamples).doubleValue();
+			treatmentDenominator=new Double(treatmentDenominator/nTreatmentSamples).doubleValue();
+			controlNumerator=new Double(controlNumerator/nControlSamples).doubleValue();
+			controlDenominator=new Double(controlDenominator/nControlSamples).doubleValue();
+			
+			treatmentAverage=treatmentNumerator/treatmentDenominator;
+			controlAverage=controlNumerator/controlDenominator;
+			
+			double log2FC=Math.log(treatmentAverage/controlAverage)/Math.log(2);
+			outTemp.print(treatmentAverage+"\t");
+			outTemp.print(controlAverage+"\t");
+			outTemp.print(log2FC+"\t");			
+			/*##################################
+			 * END of type (2) calculation
+			 */
+			
+				
+			double pValue = this.computePValueForBase(regionCount);
+			pValues.add(pValue);
+			
+			outTemp.println(pValue);
 		}
+		// ENDS modification by Osvaldo
+		//****************************************************//
 		
 		logger.info("[OK]");
 		
@@ -276,7 +416,10 @@ public class DifferentialMethylationAnalysis {
 		
 		writeSampleNames(treatmentSamples, controlSamples, outTemp);
 		
-		outTemp.println("\tp-value\tq-value");
+		//modified by Osvaldo 11Apr2017
+		//outTemp.println("\tp-value\tq-value");
+		outTemp.println("\ttreatment average\tcontrol average\tlog2FC(treament/control)\tp-value\tq-value");
+		
 	}
 	
 	private void writeOutputHeadersByRegion(Reference reference, List<Sample> treatmentSamples,
@@ -286,7 +429,9 @@ public class DifferentialMethylationAnalysis {
 		
 		writeSampleNames(treatmentSamples, controlSamples, outTemp);
 		
-		outTemp.println("\tp-value\tq-value");
+		//modified by Osvaldo 9Apr2017
+		//outTemp.println("\tp-value\tq-value");
+		outTemp.println("\ttreatment average\tcontrol average\tlog2FC(treament/control)\tp-value\tq-value");
 	}
 
 	public void writeSampleNames(List<Sample> treatmentSamples, List<Sample> controlSamples, PrintStream outTemp) {
@@ -334,6 +479,58 @@ public class DifferentialMethylationAnalysis {
 		outTemp.print(currentSeq+"\t"+currentPos+"\t");
 		MethylationCounts counts = computeMethylationCounts(treatmentSamples, controlSamples, currentBaseCalls);
 		outTemp.print(counts.toString());
+	
+		//****************************************************//
+		//Added by Osvaldo, 11Apr2017
+		//To include average methylation values for treatment and control, and log2FC(average treatment/average control)
+		//SECOND WAY USED, as in analyzeDifferentialMethylationByRegions()
+		//calculates average values of methylation for treatment and control samples
+		int nTreatmentSamples=treatmentSamples.size();
+		int nControlSamples=controlSamples.size();
+		double treatmentNumerator=0.0;
+		double treatmentDenominator=0.0;
+		double controlNumerator=0.0;
+		double controlDenominator=0.0;
+		double treatmentAverage=0.0;
+		double controlAverage=0.0;
+		int counter=0;
+		String[] tokens=counts.toString().split("\t");
+		
+		//calculates average values of methylation for treatment and control samples
+		for(String token:tokens){// for each methylation ratio
+			
+			//treatment samples
+			if(counter<nTreatmentSamples){
+				//separates values that come represented as a methylation ratio
+				String[] subToken=token.split("/");
+				treatmentNumerator+=new Double(subToken[0]).doubleValue();
+				treatmentDenominator+=new Double(subToken[1]).doubleValue();
+				counter++;
+				
+			}else{//control samples
+				//separates values that come represented as a methylation ratio
+				String[] subToken=token.split("/");
+				controlNumerator+=new Double(subToken[0]).doubleValue();
+				controlDenominator+=new Double(subToken[1]).doubleValue();					
+			}			
+		}
+		//computes averages
+		treatmentNumerator=new Double(treatmentNumerator/nTreatmentSamples).doubleValue();
+		treatmentDenominator=new Double(treatmentDenominator/nTreatmentSamples).doubleValue();
+		controlNumerator=new Double(controlNumerator/nControlSamples).doubleValue();
+		controlDenominator=new Double(controlDenominator/nControlSamples).doubleValue();
+		
+		treatmentAverage=treatmentNumerator/treatmentDenominator;
+		controlAverage=controlNumerator/controlDenominator;
+		
+		double log2FC=Math.log(treatmentAverage/controlAverage)/Math.log(2);
+		outTemp.print(treatmentAverage+"\t");
+		outTemp.print(controlAverage+"\t");
+		outTemp.print(log2FC+"\t");			
+		/*##################################
+		 * END of type (2) calculation
+		 */
+				
 		double pValue = computePValueForBase(counts);
 		outTemp.print(pValue);
 		outTemp.println();
