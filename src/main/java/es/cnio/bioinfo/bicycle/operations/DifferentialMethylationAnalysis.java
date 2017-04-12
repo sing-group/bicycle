@@ -412,7 +412,7 @@ public class DifferentialMethylationAnalysis {
 	private void writeOutputHeadersByBase(Reference reference, List<Sample> treatmentSamples,
 			List<Sample> controlSamples, PrintStream outTemp)
 			throws FileNotFoundException {
-		outTemp.print("#SEQ\tPOS");
+		outTemp.print("#SEQ\tPOS\tCONTEXT");
 		
 		writeSampleNames(treatmentSamples, controlSamples, outTemp);
 		
@@ -477,6 +477,7 @@ public class DifferentialMethylationAnalysis {
 	private void processBase(String currentSeq, long currentPos, List<Sample> treatmentSamples,
 			List<Sample> controlSamples, Map<Sample, MethylationCall> currentBaseCalls, List<Double> pValues, PrintStream outTemp) {
 		outTemp.print(currentSeq+"\t"+currentPos+"\t");
+		outTemp.print(currentBaseCalls.get(controlSamples.get(0)).getContext().toString()+"\t");
 		MethylationCounts counts = computeMethylationCounts(treatmentSamples, controlSamples, currentBaseCalls);
 		outTemp.print(counts.toString());
 	
