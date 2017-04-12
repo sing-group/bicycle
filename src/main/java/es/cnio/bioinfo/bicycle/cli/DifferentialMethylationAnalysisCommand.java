@@ -22,13 +22,16 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 package es.cnio.bioinfo.bicycle.cli;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
+import es.cnio.bioinfo.bicycle.gatk.Context;
 import es.cnio.bioinfo.bicycle.operations.DifferentialMethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 
@@ -81,9 +84,11 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 				}
 			}
 		} 
-		
+
+		Set<Context> contexts = parseContextParameter(parameters.get(this.findOption("x")));
+
 		DifferentialMethylationAnalysis dma = 
-				new DifferentialMethylationAnalysis(new MethylationAnalysis(project));
+				new DifferentialMethylationAnalysis(new MethylationAnalysis(project), contexts);
 		for (Reference reference: project.getReferences()) {
 			dma.analyzeDifferentialMethylationByBase(reference, treatmentSamples, controlSamples);
 			//by region
@@ -91,6 +96,21 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 				dma.analyzeDifferentialMethylationByRegions(reference, treatmentSamples, controlSamples, bedFile);
 			}
 		}
+	}
+
+	private Set<Context> parseContextParameter(String contextsString) {
+		String[] tokens = contextsString.split(",");
+		Set<Context> toret = new HashSet<>();
+
+		for(String token: tokens) {
+			try {
+				toret.add(Context.valueOf(token));
+			} catch(IllegalArgumentException e) {
+				throw new IllegalArgumentException("Invalid context parameter, must be a comma-separated list of " +
+						"contexts (CG, CHG, CHH)");
+			}
+		}
+		return toret;
 	}
 
 	private List<Sample> parseSamples(Project project, String treatmentSamplesString) {
@@ -136,8 +156,12 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 		
 		toret.add(new Option("control-samples", "c", 
 				"Comma-separated (with no spaces) list of sample names belonging to 'control' group", false, true));
-		
-		toret.add(new Option("region-beds", "b", 
+
+		toret.add(new DefaultValuedOption("context", "x",
+				"Comma-separated (with no spaces) list of CpG contexts to analyze: CG, CHG or CHH. For example: CG," +
+						"CHG",	"CG"));
+
+		toret.add(new Option("region-beds", "b",
 				"Comma-separated (with no spaces) list of BED files to analyze at region-level", true, true));
 		
 		

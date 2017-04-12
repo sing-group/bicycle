@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -23,6 +22,7 @@ import es.cnio.bioinfo.bicycle.MethylationCall;
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
+import es.cnio.bioinfo.bicycle.gatk.Context;
 import es.cnio.bioinfo.bicycle.gatk.GPFilesReader;
 import es.cnio.bioinfo.pileline.core.Interval;
 import es.cnio.bioinfo.pileline.core.IntervalsIndex;
@@ -31,7 +31,8 @@ import es.uvigo.ei.sing.math.statistical.corrections.FDRCorrection;
 
 public class DifferentialMethylationAnalysis {
 	private static final Logger logger = Logger.getLogger(DifferentialMethylationAnalysis.class.getName());
-	
+	private final Set<Context> contexts;
+
 	private Project project;
 	
 	private MethylationAnalysis ma;
@@ -39,9 +40,9 @@ public class DifferentialMethylationAnalysis {
 	private File outputFile;
 
 	
-	public DifferentialMethylationAnalysis(MethylationAnalysis ma) {
+	public DifferentialMethylationAnalysis(MethylationAnalysis ma, Set<Context> contexts) {
 		System.out.println(ma);
-		
+		this.contexts = contexts;
 		this.ma = ma;
 		
 	}
@@ -256,6 +257,9 @@ public class DifferentialMethylationAnalysis {
 				String line = scanner.nextLine();
 				if (line.startsWith("#")) continue;
 				MethylationCall call = MethylationCall.unmarshall(line);
+
+				if (!this.contexts.contains(call.getContext())) continue;
+
 				for (Interval interval : asIterable(bedIndex.getOverlappingIntervals(call.getContig(), (int) call.getPosition(), (int) call.getPosition()))){
 					MethylationCounts counts = regionCounts.get(interval);
 					if (counts == null) {
@@ -277,6 +281,9 @@ public class DifferentialMethylationAnalysis {
 				String line = scanner.nextLine();
 				if (line.startsWith("#")) continue;
 				MethylationCall call = MethylationCall.unmarshall(line);
+
+				if (!this.contexts.contains(call.getContext())) continue;
+
 				for (Interval interval : asIterable(bedIndex.getOverlappingIntervals(call.getContig(), (int) call.getPosition(), (int) call.getPosition()))){
 					MethylationCounts counts = regionCounts.get(interval);
 					if (counts == null) {
@@ -337,6 +344,7 @@ public class DifferentialMethylationAnalysis {
 		GPFilesReader reader = new GPFilesReader(reference.getSequenceNames(), sampleFiles);
 		
 		String currentSeq = null;
+		Context currentContext = null;
 		long currentPos = -1;
 		Map<Sample, MethylationCall> currentBaseCalls = new HashMap<>();
 		
@@ -348,29 +356,37 @@ public class DifferentialMethylationAnalysis {
 		while ((line = reader.readLine()) != null) {
 			if (line.startsWith("#"))
 				continue;
-			
+
+			MethylationCall call = MethylationCall.unmarshall(line);
+			if (!this.contexts.contains(call.getContext())) {
+				continue;
+			}
 			String[] tokens = line.split("\t");
 			String lineSeq = tokens[0];
 			long linePos = Long.parseLong(tokens[1]);
 
 			if (currentSeq != null && (!lineSeq.equals(currentSeq) || linePos != currentPos)) {
-				processBase(currentSeq, currentPos, treatmentSamples, controlSamples, currentBaseCalls, pValues, outTemp);
+				processBase(currentSeq, currentPos, currentContext, treatmentSamples, controlSamples, currentBaseCalls,
+						pValues, outTemp);
 				
 				currentBaseCalls.clear();
 			}
-			
+
 			currentSeq = lineSeq;
 			currentPos = linePos;
-			Sample lineSample = 
+			currentContext = call.getContext();
+
+			Sample lineSample =
 					getSample(treatmentSamples, controlSamples, 
 							reader.getLastLineReaderIndex());
-			currentBaseCalls.put(lineSample, MethylationCall.unmarshall(line));
+			currentBaseCalls.put(lineSample, call);
+
 			
 		}
 		
 		//process the last base
 		if (currentSeq != null) {
-			processBase(currentSeq, currentPos, treatmentSamples, controlSamples, currentBaseCalls, pValues, outTemp);
+			processBase(currentSeq, currentPos, currentContext, treatmentSamples, controlSamples, currentBaseCalls, pValues, outTemp);
 		}
 		outTemp.close();
 		logger.info("[OK]");
@@ -474,10 +490,9 @@ public class DifferentialMethylationAnalysis {
 		return qValues;
 	}
 
-	private void processBase(String currentSeq, long currentPos, List<Sample> treatmentSamples,
-			List<Sample> controlSamples, Map<Sample, MethylationCall> currentBaseCalls, List<Double> pValues, PrintStream outTemp) {
-		outTemp.print(currentSeq+"\t"+currentPos+"\t");
-		outTemp.print(currentBaseCalls.get(controlSamples.get(0)).getContext().toString()+"\t");
+	private void processBase(String currentSeq, long currentPos, Context currentContext, List<Sample> treatmentSamples,
+							 List<Sample> controlSamples, Map<Sample, MethylationCall> currentBaseCalls, List<Double> pValues, PrintStream outTemp) {
+		outTemp.print(currentSeq+"\t"+currentPos+"\t"+currentContext+"\t");
 		MethylationCounts counts = computeMethylationCounts(treatmentSamples, controlSamples, currentBaseCalls);
 		outTemp.print(counts.toString());
 	

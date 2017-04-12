@@ -4,6 +4,8 @@ import static java.util.Arrays.asList;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import org.easymock.EasyMock;
@@ -18,6 +20,7 @@ import org.junit.runner.RunWith;
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
+import es.cnio.bioinfo.bicycle.gatk.Context;
 import es.cnio.bioinfo.bicycle.operations.DifferentialMethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 
@@ -57,7 +60,7 @@ public class DifferentialMethylationAnalysisTest {
 	
 	@Before
 	public void instantiateDMA() {
-		this.dma = new DifferentialMethylationAnalysis(this.ma);
+		this.dma = new DifferentialMethylationAnalysis(this.ma, new HashSet<>(Arrays.asList(Context.CG)));
 	}
 	
 	@Test
