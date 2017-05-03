@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 import es.cnio.bioinfo.bicycle.Sample;
 
 public class SampleBisulfitation {
-	private static final Logger logger = Logger.getLogger(SampleBisulfitation.class.getName());
+	private static final Logger logger = Logger.getLogger(SampleBisulfitation.class.getSimpleName());
 	private Sample sample;
 	
 	public SampleBisulfitation(Sample sample) {

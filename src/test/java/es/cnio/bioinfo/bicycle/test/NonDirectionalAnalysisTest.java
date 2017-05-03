@@ -49,7 +49,6 @@ public class NonDirectionalAnalysisTest {
 	private Project prepareProject() throws IOException {
 		
 		File tempDir = Utils.generateTempDirName("newproject");		
-		System.err.println("CREATED PROJECT IN "+tempDir);
 		Project p = Project.buildNewProject(
 				tempDir,
 				new File(Utils.getReferenceDirectory()), 
@@ -92,7 +91,6 @@ public class NonDirectionalAnalysisTest {
 				}
 			}));
 			
-			System.out.println("beds2: "+bedFiles);
 			for (Sample sample: project.getSamples()){
 				for (Reference reference : project.getReferences()){
 					

@@ -30,7 +30,7 @@ import es.cnio.bioinfo.pileline.core.IntervalsIndexFactory;
 import es.uvigo.ei.sing.math.statistical.corrections.FDRCorrection;
 
 public class DifferentialMethylationAnalysis {
-	private static final Logger logger = Logger.getLogger(DifferentialMethylationAnalysis.class.getName());
+	private static final Logger logger = Logger.getLogger(DifferentialMethylationAnalysis.class.getSimpleName());
 	private final Set<Context> contexts;
 
 	private Project project;
@@ -41,7 +41,6 @@ public class DifferentialMethylationAnalysis {
 
 	
 	public DifferentialMethylationAnalysis(MethylationAnalysis ma, Set<Context> contexts) {
-		System.out.println(ma);
 		this.contexts = contexts;
 		this.ma = ma;
 		
@@ -53,11 +52,11 @@ public class DifferentialMethylationAnalysis {
 			List<Sample> controlSamples,
 			File bedFile) throws NumberFormatException, IOException
 	{
-		logger.info("Performing differential methylation at region level (DMR)");
-		logger.info("reference: "+reference.getReferenceFile());
-		logger.info("treament samples: "+treatmentSamples);
-		logger.info("control samples: "+controlSamples);
-		logger.info("regions: "+bedFile);
+		logger.info("Performing differential methylation analysis at region level (DMR)");
+		logger.info("Reference: "+reference.getReferenceFile());
+		logger.info("Treament samples: "+treatmentSamples);
+		logger.info("Control samples: "+controlSamples);
+		logger.info("Regions: "+bedFile);
 		
 		
 		File outputFile = getDifferentiallyMethylatedRegionsFile(reference, treatmentSamples, controlSamples, bedFile);
@@ -230,11 +229,10 @@ public class DifferentialMethylationAnalysis {
 		// ENDS modification by Osvaldo
 		//****************************************************//
 		
-		logger.info("[OK]");
-		
+
 		logger.info("Writing output file with adjusted p-values");
 		createOutputFileWithAdjustedPValues(tempFile, pValues);
-		logger.info("[OK]");
+		logger.info("DMR analysis OK");
 	}
 
 	public File getDifferentiallyMethylatedRegionsFile(Reference reference, List<Sample> treatmentSamples,
@@ -389,11 +387,11 @@ public class DifferentialMethylationAnalysis {
 			processBase(currentSeq, currentPos, currentContext, treatmentSamples, controlSamples, currentBaseCalls, pValues, outTemp);
 		}
 		outTemp.close();
-		logger.info("[OK]");
+
 		
 		logger.info("Writing output file with adjusted p-values");
 		createOutputFileWithAdjustedPValues(tempFile, pValues);
-		logger.info("[OK]");
+		logger.info("DMC analysis OK");
 	}
 
 	public File getDifferentiallyMethylatedCytosinesFile(Reference reference, List<Sample> treatmentSamples,

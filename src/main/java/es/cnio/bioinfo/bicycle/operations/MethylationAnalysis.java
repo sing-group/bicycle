@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -37,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import es.cnio.bioinfo.bicycle.ErrorRateMode;
@@ -45,14 +47,15 @@ import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.RegionMethylation;
 import es.cnio.bioinfo.bicycle.Sample;
+import es.cnio.bioinfo.bicycle.StandardStreamsToLoggerRedirector;
 import es.cnio.bioinfo.bicycle.Tools;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 
 public class MethylationAnalysis {
-	private static final Logger logger = Logger.getLogger(MethylationAnalysis.class.getName());
-	
+	private static final Logger logger = Logger.getLogger(MethylationAnalysis.class.getSimpleName());
+
 	private Project project;
-	
+
 	public MethylationAnalysis(Project p) {
 		this.project = p;
 	}
@@ -60,15 +63,15 @@ public class MethylationAnalysis {
 	public Project getProject() {
 		return project;
 	}
-	
+
 	public File getMethylcytosinesFile(Reference reference, Sample sample){
 		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+".methylcytosines");
 	}
-	
+
 	public File getMethylcytosinesVCFFile(Reference reference, Sample sample){
 		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+".methylcytosines.vcf");
 	}
-	
+
 	public File getMethylationFile(Strand strand, Reference reference,
 			Sample sample) {
 		return new File(this.project.getOutputDirectory()+File.separator+sample.getName()+"_"+reference.getReferenceFile().getName()+"_"+strand.name()+".methylation");
@@ -86,62 +89,63 @@ public class MethylationAnalysis {
 	public File getMethylatedRegionsFile(Reference reference, Sample sample, File bed) {
 		return new File(this.getMethylcytosinesFile(reference, sample).toString().replace("methylcytosines","")+bed.getName().replace("bed", "METHYLATEDregions.txt"));
 	}
-	
-	public void analyzeWithErrorFromBarcodes(Reference reference, 
-			Sample sample, 
+
+	public void analyzeWithErrorFromBarcodes(Reference reference,
+			Sample sample,
 			boolean trimreads,
 			int trimuntil,
-			boolean removeAmbiguous, 
+			boolean removeAmbiguous,
 			boolean removeBad,
 			boolean removeClonal,
 			boolean correctNonCG,
 			int mindepth,
 			double fdr,
-			int nThreads,			
+			int nThreads,
 			List<File> bedFiles) throws IOException, InterruptedException{
-		
+
 		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, ErrorRateMode.from_barcodes, "", 0d, 0d, bedFiles);
 	}
-	
-	public void analyzeWithErrorFromControlGenome(Reference reference, 
-			Sample sample, 
+
+	public void analyzeWithErrorFromControlGenome(Reference reference,
+			Sample sample,
 			boolean trimreads,
 			int trimuntil,
-			boolean removeAmbiguous, 
+			boolean removeAmbiguous,
 			boolean removeBad,
 			boolean removeClonal,
 			boolean correctNonCG,
 			int mindepth,
 			double fdr,
-			int nThreads,			
+			int nThreads,
 			List<File> bedFiles,
 			String controlGenome) throws IOException, InterruptedException{
-		
+
 		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, ErrorRateMode.from_control_genome, controlGenome, 0d, 0d, bedFiles);
 	}
-	
-	public void analyzeWithFixedErrorRate(Reference reference, 
-			Sample sample, 
+
+	public void analyzeWithFixedErrorRate(Reference reference,
+			Sample sample,
 			boolean trimreads,
 			int trimuntil,
-			boolean removeAmbiguous, 
+			boolean removeAmbiguous,
 			boolean removeBad,
 			boolean removeClonal,
 			boolean correctNonCG,
 			int mindepth,
 			double fdr,
-			int nThreads,			
+			int nThreads,
 			List<File> bedFiles,
 			double watsonError, double crickError) throws IOException, InterruptedException{
-		
+
 		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, ErrorRateMode.FIXED, "", watsonError, crickError, bedFiles);
+
 	}
-	
-	private void analyze(Reference reference, 
-			Sample sample, 
+
+	private void analyze(Reference reference,
+			Sample sample,
 			boolean trimreads,
 			int trimuntil,
-			boolean removeAmbiguous, 
+			boolean removeAmbiguous,
 			boolean removeBad,
 			boolean removeClonal,
 			boolean correctNonCG,
@@ -154,46 +158,77 @@ public class MethylationAnalysis {
 			double crickError,
 			List<File> bedFiles) throws IOException, InterruptedException
 	{
-		
+
 		final String command = prepareGATKCommand(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad,
 				removeClonal, correctNonCG, mindepth, fdr, nThreads, errorMode, controlGenome, watsonError,
 				crickError, bedFiles);
-		
+
+		logger.info("Starting methylation analysis of sample "+sample.getName());
 		//logger.info("GATK command: "+command);
 		//final Process p = Runtime.getRuntime().exec(command.split(" "));
-		try {  
+
+		StandardStreamsToLoggerRedirector redirector = null;
+
+
+		try {
 			forbidSystemExitCall() ;
-			
+			redirector = new StandardStreamsToLoggerRedirector(logger, Level.INFO,
+					new StandardStreamsToLoggerRedirector.MessageFilter() {
+
+				@Override
+				public String filter(String msg) {
+					//remove lines containing HelpFormatter
+					if (msg.contains("HelpFormatter")) {
+						return "";
+					}
+					if (msg.contains("RestStorageService")) {
+						return "";
+					}
+
+					if (msg.contains("INFO")) {
+						msg = msg.replaceAll("INFO.*- ", "");
+					}
+					return "GATK: " + msg;
+				}
+			});
+			redirector.redirectStreams();
+
 			org.broadinstitute.sting.gatk.CommandLineGATK.main(command.split(" "));
-			
-		
+
 		} catch( ExitTrappedException e ) {
 			//SortSam seems to have a System.exit(0) at the end!
 	    } finally {
+			redirector.restoreStreams();
 	        enableSystemExitCall() ;
-	    }
-		
+		}
 		writeRegionsMethylation(reference, sample, bedFiles);
+
+		logger.info("Methylation analysis of sample "+sample.getName()+" OK");
+
 	}
 
 	private String prepareGATKCommand(Reference reference, Sample sample, boolean trimreads, int trimuntil,
 			boolean removeAmbiguous, boolean removeBad, boolean removeClonal, boolean correctNonCG, int mindepth,
 			double fdr, int nThreads, ErrorRateMode errorMode, String controlGenome, double watsonError,
-			double crickError, List<File> bedFiles) throws InterruptedException, IOException 
+			double crickError, List<File> bedFiles) throws InterruptedException, IOException
 	{
-		
+
 		BowtieAlignment ba = new BowtieAlignment(this.project);
 		File samFileCT = ba.getAlignmentOutputFile(Strand.WATSON, sample, reference);
 		File samFileGA = ba.getAlignmentOutputFile(Strand.CRICK, sample, reference);
 		File fasta = reference.getReferenceFile();
 
+
+		final PrintStream oldErr = System.err;
+		// capture SortSam output and redirect it to our logger
+
 		File sortedCT = new File(samFileCT.getAbsolutePath() + ".sorted.sam");
+		File sortedGA = new File(samFileGA.getAbsolutePath() + ".sorted.sam");
 
 		sortSAM(samFileCT, sortedCT);
-		File outputBamFileCT = buildBAMAndIndex(sortedCT, this.project.getSamtoolsDirectory());
-
-		File sortedGA = new File(samFileGA.getAbsolutePath() + ".sorted.sam");
 		sortSAM(samFileGA, sortedGA);
+
+		File outputBamFileCT = buildBAMAndIndex(sortedCT, this.project.getSamtoolsDirectory());
 		File outputBamFileGA = buildBAMAndIndex(sortedGA, this.project.getSamtoolsDirectory());
 
 		// RuntimeMXBean runtimemxBean = ManagementFactory.getRuntimeMXBean();
@@ -250,7 +285,7 @@ public class MethylationAnalysis {
 		if (removeBad) {
 			command += " --removebad";
 		}
-		
+
 		return command;
 	}
 
@@ -263,10 +298,10 @@ public class MethylationAnalysis {
 			// calculates methylation for each annotated region in each bed file
 			// for the methylcytosines file
 
-			
+
 			// foreach bed file
 			for (File bed : bedFiles) {
-				System.out.println("\t\t[ Checking methylation for regions annotated in " + bed.toString() + " ]");
+				logger.info("Checking methylation for regions annotated in " + bed.toString());
 				BufferedWriter w = null;
 				String annotationSet = bed.getName();
 				try {
@@ -275,16 +310,16 @@ public class MethylationAnalysis {
 					File outputFile = this.getMethylatedRegionsFile(reference, sample, bed);
 
 					FileWriter o = new FileWriter(outputFile);
-					
+
 					w = new BufferedWriter(o);
 					w.write(RegionMethylation.getMarshallHeader());
 					w.newLine();
 					w.flush();
 
-					
-					List<RegionMethylation> regionsMethylation = 
+
+					List<RegionMethylation> regionsMethylation =
 							computeRegionsMethylation(reference, sample, annotationSet);
-					
+
 					for (RegionMethylation rM : regionsMethylation) {
 						w.append(rM.marshall());
 						w.newLine();
@@ -308,10 +343,10 @@ public class MethylationAnalysis {
 	public List<RegionMethylation> computeRegionsMethylation(Reference reference, Sample sample, String annotationSet)
 			throws FileNotFoundException, IOException {
 		File methylcytosinesFile = this.getMethylcytosinesFile(reference, sample);
-		System.out.println(
-				"[ Calculating methylation per annotated region for: " + methylcytosinesFile.toString() + " ]");
+		logger.info("Calculating methylation per annotated region for: " + methylcytosinesFile.toString().replaceAll
+				(project.getOutputDirectory()+File.separator, Project.OUTPUT_DIRECTORY));
 
-		List<RegionMethylation> regionsMethylation = new LinkedList<>(); 
+		List<RegionMethylation> regionsMethylation = new LinkedList<>();
 
 		// each hash table contains separated values for Watson and
 		// Crick
@@ -334,10 +369,10 @@ public class MethylationAnalysis {
 		// for each line in the methylcytosines file (starting from
 		// line 0, i.e., first line)
 		while ((line = b.readLine()) != null) {
-			
+
 			String tokens[] = line.split("\t");
 
-			
+
 			// if positioned in first (header) line (line 0), it
 			// finds out the column number that contains
 			// the genomic annotations for the current bed file
@@ -366,31 +401,31 @@ public class MethylationAnalysis {
 								mCG.put(region, new HashMap<String, Integer>());
 								mCG.get(region).put("WATSON", 0);
 								mCG.get(region).put("CRICK", 0);
-								
+
 								mCHG.put(region, new HashMap<String, Integer>());
 								mCHG.get(region).put("WATSON", 0);
 								mCHG.get(region).put("CRICK", 0);
-								
+
 								mCHH.put(region, new HashMap<String, Integer>());
 								mCHH.get(region).put("WATSON", 0);
 								mCHH.get(region).put("CRICK", 0);
-								
+
 								depthCG.put(region, new HashMap<String, Integer>());
 								depthCG.get(region).put("WATSON", 0);
 								depthCG.get(region).put("CRICK", 0);
-								
+
 								depthCHG.put(region, new HashMap<String, Integer>());
 								depthCHG.get(region).put("WATSON", 0);
 								depthCHG.get(region).put("CRICK", 0);
-								
+
 								depthCHH.put(region, new HashMap<String, Integer>());
 								depthCHH.get(region).put("WATSON", 0);
 								depthCHH.get(region).put("CRICK", 0);
 						}
-						
+
 						// value accumulation
 						// accumulates methylated cytosines
-					
+
 						String strand = call.getStrand().name();//tokens[2];
 						String methylationContext = call.getContext().name();//tokens[3];
 						int depth = call.getDepth();//Integer.parseInt(tokens[4]);
@@ -428,7 +463,7 @@ public class MethylationAnalysis {
 		b.close();
 
 		for (String region: mCG.keySet()) {
-			regionsMethylation.add( 
+			regionsMethylation.add(
 					new RegionMethylation(
 							region,
 							mCG.get(region).get("WATSON").intValue(),
@@ -443,119 +478,133 @@ public class MethylationAnalysis {
 							depthCHG.get(region).get("CRICK").intValue(),
 							mCHH.get(region).get("CRICK").intValue(),
 							depthCHH.get(region).get("CRICK").intValue()
-							
+
 					));
-			
+
 		}
-		
+
 		return regionsMethylation;
 	}
 
 
-	private static void sortSAM(File sam, File output) throws InterruptedException, IOException{
+	private void sortSAM(File sam, File output) throws InterruptedException, IOException{
 		//sort the sam
-		
+
 		if(new File(output.getAbsolutePath()).exists() && new File(output.getAbsolutePath()).lastModified() > sam.lastModified()){
 			//System.out.println("skipping. found the corresponding sorted file, older than the unsorted input file");
 			return;
 		}
-		System.out.println("Sorting " + sam.getAbsolutePath());
+		logger.info("Sorting " + sam.getAbsolutePath().replaceAll(project.getOutputDirectory()+File.separator,
+				Project.OUTPUT_DIRECTORY));
 		String outfile = sam.getAbsolutePath() + ".sorted.sam";
-		
 
-		  
-		try{  
+		StandardStreamsToLoggerRedirector redirector = null;
+		try{
 			forbidSystemExitCall() ;
+			redirector = new StandardStreamsToLoggerRedirector(logger, Level.INFO,
+					new StandardStreamsToLoggerRedirector.MessageFilter() {
+						@Override
+						public String filter(String msg) {
+							if (!msg.contains("INFO")) return ""; //skip non INFO lines
+							if (msg.contains("INPUT=")) return ""; //skip hello message
+							return "SortSam (Picard): " + msg.replaceAll("INFO.*SortSam\\s+", "");
+						}
+					});
+			redirector.redirectStreams();
 			net.sf.picard.sam.SortSam.main(new String[]{"I="+sam.getAbsolutePath(),"O="+outfile, "SO=coordinate", "TMP_DIR="+sam.getAbsoluteFile().getParentFile().getAbsolutePath()});
 		}catch( ExitTrappedException e ) {
 			//SortSam seems to have a System.exit(0) at the end!
 	    } finally {
-	        enableSystemExitCall() ;	       
+	        enableSystemExitCall() ;
+			redirector.restoreStreams();
 	    }
-		
+
 	}
 	private static PrintStream err;
-	private static void disableSystemErr(){
-		if (err==null) err = System.err;
+	private static void disableSystemErr(PrintStream originalStdErr){
+		if (err==null) err = originalStdErr;
 		System.setErr(new PrintStream(new OutputStream(){
 
 			@Override
 			public void write(int arg0) throws IOException {
-				
+
 			}
-			
+
 		}));
 	}
 	private static void enableSystemErr(){
 		if (err!=null) System.setErr(err);
 		err=null;
-		
+
 	}
-	
+
 	private static class ExitTrappedException extends SecurityException {
-		private static final long serialVersionUID = 1L; 
+		private static final long serialVersionUID = 1L;
 	}
-	
+
 	private static void forbidSystemExitCall() {
+		final PrintStream systemErr = System.err;
 	    final SecurityManager securityManager = new SecurityManager() {
 	    	private boolean hasExited=false;
 	    	public void checkPermission(Permission perm, Object context) {
 	    		//System.err.println(perm);
-	    		
+
 	    	};
 	      public void checkPermission( Permission permission ) {
 	    	  if( permission.getName().startsWith("exitVM") ) {
 	    		  hasExited = true;
 	    		  if (Integer.parseInt((permission.getName().split("\\.")[1]))!=0 && !hasExited){
-	    			  
+
 	    			  throw new RuntimeException("SortSam exited with status: "+Integer.parseInt((permission.getName().split("\\.")[1]))+". Please check if you have sufficient space in file system.");
 	    		  }
-	    		  disableSystemErr();
+	    		  disableSystemErr(systemErr);
 	    		  throw new ExitTrappedException();
 	    	  }
 	      }
 	    } ;
-	    
+
 	    System.setSecurityManager( securityManager ) ;
 	  }
 
 	  private static void enableSystemExitCall() {
-		
+
 	    System.setSecurityManager( null ) ;
 	    enableSystemErr();
 	  }
-	private static File buildBAMAndIndex(File samCT, File samtoolsDirectory) {
+	private File buildBAMAndIndex(File samCT, File samtoolsDirectory) {
 		File bam = new File(samCT.getAbsolutePath()+".bam");
 		if (bam.exists() && bam.lastModified()>samCT.lastModified()){
 		//	System.out.println("bam exists and is older. Skip");
-			
+
 		}else{
-			logger.info("Building BAM for "+samCT);
-			
+			logger.info("Building BAM for "+samCT.toString().replaceAll(project.getOutputDirectory()+File.separator,""));
+
 			Tools.executeProcessWait(samtoolsDirectory.getAbsolutePath()+File.separator+"samtools view -S -b -o "+bam.getAbsolutePath()+" "+samCT.getAbsolutePath());
-			logger.info("BAM built for "+samCT);
+			logger.info("BAM built for "+samCT.toString().replaceAll(project.getOutputDirectory()+File.separator,""));
 		}
-		
-		
+
+
 		File bai = new File(bam.getAbsolutePath()+".bai");
-		
+
 		if (bai.exists() && bam.exists() && bai.lastModified()>bam.lastModified()){
 		//	System.out.println("bai exists and is older. Skip");
-			
-		}else{
-			logger.info("Building index for "+samCT);
-			
+
+		} else {
+			logger.info("Building index for "+samCT.toString().replaceAll(project.getOutputDirectory()+File
+					.separator, Project.OUTPUT_DIRECTORY));
+
 			Tools.executeProcessWait(samtoolsDirectory.toString()+"/samtools index "+bam.getAbsolutePath());
-			logger.info("index built for "+samCT);
+			logger.info("Index built for "+samCT.toString().replaceAll(project.getOutputDirectory()+File
+					.separator, Project.OUTPUT_DIRECTORY));
 		}
-		
-		
+
+
 		return bam;
-		
-		
+
+
 	}
-	
-		
+
+
 }
 
 

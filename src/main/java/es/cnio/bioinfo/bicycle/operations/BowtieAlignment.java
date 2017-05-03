@@ -58,7 +58,7 @@ public class BowtieAlignment {
 	public enum Strand{
 		WATSON, CRICK,
 	}
-	private static final Logger logger = Logger.getLogger(BowtieAlignment.class.getName());
+	private static final Logger logger = Logger.getLogger(BowtieAlignment.class.getSimpleName());
 	
 	
 	
@@ -103,12 +103,13 @@ public class BowtieAlignment {
 	}
 
 	private void buildBowtieIndex(File bisulfitedReference) {
-		logger.info("Building bowtie index for "+bisulfitedReference);
+		logger.info("Building Bowtie index for "+bisulfitedReference.toString().replaceAll(project
+				.getWorkingDirectory()+File.separator, Project.WORKING_DIRECTORY));
 		String [] command=new String[]{this.project.getBowtieDirectory().getAbsolutePath()+File.separator+("bowtie-build"),bisulfitedReference.getAbsolutePath(),bisulfitedReference.getAbsolutePath()};
 		
 		int result=Tools.executeProcessWait(command,null,null);	
 		
-		if(result==0) logger.info("[OK]");
+		if(result==0) logger.info("Bowtie index build OK");
 		else{
 			String commandString = "";
 			
@@ -156,7 +157,9 @@ public class BowtieAlignment {
 			/*bowtie paired-end parameters*/
 			final int I, 
 			final int X) throws IOException{
-		
+
+		logger.info("Peforming alignment of sample "+sample.getName()+" against "+reference.getReferenceFile()
+				.toString().replaceAll(project.getReferenceDirectory()+File.separator, ""));
 		final int M = 1; //tag if there are more than one possible alignment with XM:i:>2
 		final int k = 1; //report only 1 alignment
 		
@@ -255,9 +258,12 @@ public class BowtieAlignment {
 				this.strand = strand;
 			}
 			public void run(){
-				
-				
-				logger.info("Bowtie: aligning "+sample.getReadsFiles()+" against ["+ref+"]...... (see .log file)...... ");
+				logger.info("Aligning "+
+						sample.getReadsFiles().toString().replaceAll(project.getReadsDirectory().toString()+File.separator,"")
+						+" " +
+						"against " +
+						"["+ref.toString().replaceAll(project.getWorkingDirectory().toString()+File.separator, "")+"]...... " +
+						"(see .log file)...... ");
 				
 				String [] command = null;
 				
@@ -294,16 +300,23 @@ public class BowtieAlignment {
 							PrintStream ps = new PrintStream(process.getOutputStream());
 							
 							String readsLine = null;
-							logger.info("Start read feeding to alignment against "+ref+" log file:"+logFileName);
+							logger.info("Start read feeding to alignment against "+ref.toString().replaceAll(project
+									.getWorkingDirectory()+File.separator, Project.WORKING_DIRECTORY)+". Log file: " +
+									""+logFileName
+									.replaceAll
+									(project.getOutputDirectory()+File.separator, Project.OUTPUT_DIRECTORY));
 							try {
-									while ((readsLine=readsStream.readLine())!=null && !shouldStop){
+								PrintStream outReads = new PrintStream(new FileOutputStream(logFileName+"_reads.txt"));
+								while ((readsLine=readsStream.readLine())!=null && !shouldStop){
+									outReads.println(readsLine);
 									ps.println(readsLine);
 									
 								}
 								ps.flush();
 								ps.close();
 								
-								logger.info("Finished read feeding to alignment against "+ref+" log file:"+logFileName);
+								logger.info("Finished read feeding to alignment against "+ref.toString().replaceAll(project
+										.getWorkingDirectory()+File.separator, Project.WORKING_DIRECTORY));
 							} catch (Exception e) {						
 								throw new RuntimeException(e);
 							}
@@ -319,6 +332,7 @@ public class BowtieAlignment {
 					}
 					
 					shouldStop = true; //bowtie sends a null output, so the input feed should stop
+
 				} catch (FileNotFoundException e1) {
 					throw new RuntimeException(e1);
 				}
@@ -344,7 +358,7 @@ public class BowtieAlignment {
 			}
 			public void close(){
 				flushBuffer();
-				logger.info("Both alignments finished. Ambigous reads: "+tagCount);
+				logger.info("Both alignments have finished. Ambigous reads: "+tagCount);
 				
 			}
 			
@@ -376,10 +390,15 @@ public class BowtieAlignment {
 					
 					//System.out.println(tokensCT[0]+" = "+tokensGA[0]);
 					if (!sample.isPaired() && !tokensCT[0].equals(tokensGA[0])){
-						throw new RuntimeException("BUG: reading two samrecords from CT and GA alignments with are a different read\nCT:"+CTLine+"\nGA:"+GALine);
-					}/*else if (sample.isPaired() && !tokensCT[0].substring(0, tokensCT[0].length()-1).equals(tokensGA[0].substring(0, tokensGA[0].length()-1))){
-						throw new RuntimeException("BUG: reading two samrecords from CT and GA alignments with are a different read (ignoring last character)\nCT:"+CTLine+"\nGA:"+GALine);
-					}*/
+						// Note: this does not happen when bowtie says "Exhausted best-first chunk memory for read"
+
+						logger.severe("BUG: reading two samrecords from CT and GA alignments with are a " +
+										"different read	CT:"+CTLine+"\nGA:"+GALine); System.exit(1);
+					} else if (sample.isPaired() && !tokensCT[0].substring(0, tokensCT[0].length()-1).equals
+							(tokensGA[0].substring(0, tokensGA[0].length()-1))){
+						logger.severe("BUG: reading two samrecords from CT and GA alignments with are a different " +
+								"read (ignoring last character)\nCT:"+CTLine+"\nGA:"+GALine); System.exit(1);
+					}
 					
 					if (!tokensCT[5].equals("*") && !tokensGA[5].equals("*")){
 						//adding a flag to sam indicating that this is ambiguous. Also add RG (mandatory in gatk)
@@ -672,8 +691,8 @@ public class BowtieAlignment {
 		outGA.flush();
 		outCT.close();
 		outGA.close();
-		
-		
+
+		logger.info("Alignment of sample "+sample.getName()+" OK");
 		
 	}
 	

@@ -721,12 +721,12 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 				public String toString() {
 					StringBuilder toret = new StringBuilder();
 					for (Strand s: Strand.values()){
-						toret.append("="+s+"{");
+						toret.append(s+" = {");
 						boolean first = true;
 						for (Context c: Context.values()){
 							if (!first) toret.append(", ");
 							else first=false;
-							toret.append(c+"="+getError(s, c).getError());
+							toret.append(c+" = "+getError(s, c).getError());
 						}
 						toret.append("} ");
 					}
@@ -735,10 +735,9 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 				
 			};
 		}
-		out.println("Error computed");
-		out.println(this.error);
-		
-		
+
+		out.println("Error computed "+this.error);
+
 		for (Strand strand: Strand.values()){
 			try {
 				File file = getMethylationfile(strand);

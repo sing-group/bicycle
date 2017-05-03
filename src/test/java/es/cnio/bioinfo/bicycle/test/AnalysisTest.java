@@ -92,7 +92,6 @@ public class AnalysisTest {
 				}
 			}));
 			
-			System.out.println("beds2: "+bedFiles);
 			for (Sample sample: project.getSamples()){
 				for (Reference reference : project.getReferences()){
 					

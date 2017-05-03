@@ -34,6 +34,7 @@ import org.junit.Test;
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
+import es.cnio.bioinfo.bicycle.StandardStreamsToLoggerRedirector;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Quals;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
@@ -49,7 +50,6 @@ public class PairedEndAnalysisTest {
 	private Project prepareProject() throws IOException {
 		
 		File tempDir = Utils.generateTempDirName("newproject");		
-		System.err.println("CREATED PROJECT IN "+tempDir);
 		Project p = Project.buildNewProject(
 				tempDir,
 				new File(Utils.getReferenceDirectory()), 
@@ -91,10 +91,8 @@ public class PairedEndAnalysisTest {
 				}
 			}));
 			
-			System.out.println("beds2: "+bedFiles);
 			for (Sample sample: project.getSamples()){
 				for (Reference reference : project.getReferences()){
-					
 					ma.analyzeWithFixedErrorRate(
 							reference, 
 							sample, 
@@ -106,11 +104,11 @@ public class PairedEndAnalysisTest {
 							true,
 							1,
 							0.01, 
-							1,
+							4,
 							bedFiles, 
 							0.001, 0.001);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
-					
+
 					System.err.println("====METHYLATION-WATSON=====");
 					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)));
 					System.err.println("===========================");

@@ -32,7 +32,7 @@ import es.cnio.bioinfo.bicycle.Project;
 
 public class CreateProjectCommand extends AbstractCommand {
 
-	private static final Logger logger = Logger.getLogger(CreateProjectCommand.class.getName());
+	private static final Logger logger = Logger.getLogger(CreateProjectCommand.class.getSimpleName());
 	@Override
 	public String getName() {
 		return "create-project";
