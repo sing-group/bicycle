@@ -95,14 +95,12 @@ public class DifferentialMethylationAnalysisTest {
 		
 		
 		List<Sample> controlSamples = asList(controlSample1, controlSample2);
-		System.out.println(controlSamples);
 		List<Sample> treatmentSamples = asList(treatmentSample1, treatmentSample2);
 		
 		dma.analyzeDifferentialMethylationByBase(reference, treatmentSamples, controlSamples);
 		
 		Assert.assertTrue(dma.getDifferentiallyMethylatedCytosinesFile(reference, treatmentSamples, controlSamples).exists());
 		
-		System.out.println(Utils.readFile(dma.getDifferentiallyMethylatedCytosinesFile(reference, treatmentSamples, controlSamples)));
 		EasyMock.verify(ma);
 		
 	}
@@ -138,16 +136,13 @@ public class DifferentialMethylationAnalysisTest {
 		
 		
 		List<Sample> controlSamples = asList(controlSample1, controlSample2);
-		System.out.println(controlSamples);
 		List<Sample> treatmentSamples = asList(treatmentSample1, treatmentSample2);
 		
 		dma.analyzeDifferentialMethylationByRegions(reference, treatmentSamples, controlSamples, regionsFile);
 		
 		Assert.assertTrue(dma.getDifferentiallyMethylatedRegionsFile
 				(reference, treatmentSamples, controlSamples, regionsFile).exists());
-		System.out.println(Utils.readFile(dma.getDifferentiallyMethylatedRegionsFile
-				(reference, treatmentSamples, controlSamples, regionsFile)));
-		
+
 		EasyMock.verify(ma);
 	}
 }

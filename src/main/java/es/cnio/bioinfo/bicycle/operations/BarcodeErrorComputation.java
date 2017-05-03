@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 import es.cnio.bioinfo.bicycle.Sample;
 
 public class BarcodeErrorComputation {
-	private static final Logger logger = Logger.getLogger(BarcodeErrorComputation.class.getName());
+	private static final Logger logger = Logger.getLogger(BarcodeErrorComputation.class.getSimpleName());
 	private Sample sample;
 
 	public BarcodeErrorComputation(Sample sample) {

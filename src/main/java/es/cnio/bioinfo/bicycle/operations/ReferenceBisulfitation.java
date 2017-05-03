@@ -33,7 +33,7 @@ import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 
 public class ReferenceBisulfitation {
-	private static final Logger logger = Logger.getLogger(ReferenceBisulfitation.class.getName());
+	private static final Logger logger = Logger.getLogger(ReferenceBisulfitation.class.getSimpleName());
 	
 	private static final String BISULFITED_DIR_PROPERTY="bisulfited_reference_dir";
 	private Project project;
@@ -66,7 +66,9 @@ public class ReferenceBisulfitation {
 		
 		
 		File inputFile = reference.getReferenceFile();
-		logger.info("Performing "+replacement.name()+" in-silico bisulfitation for "+inputFile);
+		logger.info("Starting "+replacement.name()+" in-silico bisulfitation for reference file: "+inputFile
+				.toString().replaceAll
+				(project.getReferenceDirectory()+File.separator, ""));
 		this.project.addProperty(BISULFITED_DIR_PROPERTY+replacement.name(), onWorkingDir?project.getWorkingDirectory().getAbsolutePath():project.getReferenceDirectory().getAbsolutePath());
 		this.project.saveProject();
 		
@@ -94,7 +96,7 @@ public class ReferenceBisulfitation {
 		
 		br.close();			
 		wr.close();			
-		logger.info("[OK]");
+		logger.info("In-silico bisulfitation OK");
 		
 	}
 	

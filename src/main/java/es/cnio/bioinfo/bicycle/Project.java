@@ -37,7 +37,7 @@ import java.util.logging.Logger;
 
 public class Project {
 
-	private static final Logger logger = Logger.getLogger(Project.class.getName());
+	private static final Logger logger = Logger.getLogger(Project.class.getSimpleName());
 	
 	public static final String WORKING_DIRECTORY="workingDirectory"+File.separator;
 	public static final String OUTPUT_DIRECTORY="output"+File.separator;
@@ -166,6 +166,7 @@ public class Project {
 			throw new IllegalArgumentException("The project folder already exists, please remove it first\n");			
 		}	
 
+		logger.info("Creating new project");
 		Project p = new Project();
 		p.projectDirectory = projectDirectory;
 		
@@ -183,7 +184,6 @@ public class Project {
 		logger.info("Looking for the reference(s) directory "+referenceDirectory.getAbsolutePath()+"...");			
 		if(referenceDirectory.exists()){
 			p.referenceDirectory = referenceDirectory;
-			logger.info("[OK]");
 		}
 		else{
 			String error = "unable to find "+referenceDirectory.getAbsolutePath();
@@ -196,8 +196,6 @@ public class Project {
 		logger.info("Looking for the read(s) directory "+readsDirectory.getAbsolutePath()+"...");		
 		if(readsDirectory.exists()){
 			p.readsDirectory = readsDirectory;
-			logger.info("[OK]");
-			
 			p.samples = Sample.buildSamples(p, p.paired, p.directional, p.mate1regexp);
 			logger.info("Num of samples: "+p.samples.size());
 		}
@@ -207,6 +205,7 @@ public class Project {
 			throw new IllegalArgumentException(error);
 		}		
 		p.saveProject();
+		logger.info("Project creation OK");
 		return p;
 	}
 	
@@ -250,7 +249,4 @@ public class Project {
 			throw new RuntimeException("Path "+projectDirectory+" was not found or it is not a directory or it cannot be accessed");
 		}
 	}
-	
-	
-	
 }

@@ -66,7 +66,7 @@ public class FastqSplitter {
 		
 			final long previous = currentEnd - fileStarts.get(fileIndex);
 			currentEnd = adjustPos(f, previous) + fileStarts.get(fileIndex);
-			System.out.println("adjusted "+f+" from "+previous+" to "+currentEnd);
+			//System.out.println("adjusted "+f+" from "+previous+" to "+currentEnd);
 
 
 			chunks.add(currentEnd);			
@@ -94,7 +94,6 @@ public class FastqSplitter {
 	private static long adjustPos(File f, long skip) throws IOException {
 		//long previous = skip;
 		
-		System.out.println(f+" adjust from "+skip);
 		// find the next @ after the skip-th byte in f
 		InputStream is = new FileInputStream(f);
 		is.skip(skip);
