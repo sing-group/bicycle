@@ -572,13 +572,15 @@ public class MethylationAnalysis {
 	  }
 	private File buildBAMAndIndex(File samCT, File samtoolsDirectory) {
 		File bam = new File(samCT.getAbsolutePath()+".bam");
+		String samtoolsPath = (samtoolsDirectory!=null?samtoolsDirectory.getAbsolutePath()+File
+				.separator:"")+"samtools";
 		if (bam.exists() && bam.lastModified()>samCT.lastModified()){
 		//	System.out.println("bam exists and is older. Skip");
 
 		}else{
 			logger.info("Building BAM for "+samCT.toString().replaceAll(project.getOutputDirectory()+File.separator,""));
 
-			Tools.executeProcessWait(samtoolsDirectory.getAbsolutePath()+File.separator+"samtools view -S -b -o "+bam.getAbsolutePath()+" "+samCT.getAbsolutePath());
+			Tools.executeProcessWait(samtoolsPath+" view -S -b -o "+bam.getAbsolutePath()+" "+samCT.getAbsolutePath());
 			logger.info("BAM built for "+samCT.toString().replaceAll(project.getOutputDirectory()+File.separator,""));
 		}
 
@@ -592,7 +594,7 @@ public class MethylationAnalysis {
 			logger.info("Building index for "+samCT.toString().replaceAll(project.getOutputDirectory()+File
 					.separator, Project.OUTPUT_DIRECTORY));
 
-			Tools.executeProcessWait(samtoolsDirectory.toString()+"/samtools index "+bam.getAbsolutePath());
+			Tools.executeProcessWait(samtoolsPath+" index "+bam.getAbsolutePath());
 			logger.info("Index built for "+samCT.toString().replaceAll(project.getOutputDirectory()+File
 					.separator, Project.OUTPUT_DIRECTORY));
 		}

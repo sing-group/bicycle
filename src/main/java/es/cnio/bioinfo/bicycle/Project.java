@@ -120,10 +120,17 @@ public class Project {
 		BufferedWriter wr = new BufferedWriter(new FileWriter(this.getConfigFile()));	
 		wr.write("project_directory:"+this.getProjectDirectory().getAbsolutePath());
 		wr.newLine();
-		wr.write("bowtie_directory:"+bowtieDirectory.getAbsolutePath());
-		wr.newLine();
-		wr.write("samtools_directory:"+samtoolsDirectory.getAbsolutePath());
-		wr.newLine();
+
+		if (bowtieDirectory != null) {
+			wr.write("bowtie_directory:" + bowtieDirectory.getAbsolutePath());
+			wr.newLine();
+		}
+
+		if (samtoolsDirectory != null) {
+			wr.write("samtools_directory:" + samtoolsDirectory.getAbsolutePath());
+			wr.newLine();
+		}
+
 		wr.write("reference_directory:"+referenceDirectory.getAbsolutePath());
 		wr.newLine();		
 		wr.write("reads_directory:"+readsDirectory.getAbsolutePath());

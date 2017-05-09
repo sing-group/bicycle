@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Reader;
@@ -105,7 +106,11 @@ public class BowtieAlignment {
 	private void buildBowtieIndex(File bisulfitedReference) {
 		logger.info("Building Bowtie index for "+bisulfitedReference.toString().replaceAll(project
 				.getWorkingDirectory()+File.separator, Project.WORKING_DIRECTORY));
-		String [] command=new String[]{this.project.getBowtieDirectory().getAbsolutePath()+File.separator+("bowtie-build"),bisulfitedReference.getAbsolutePath(),bisulfitedReference.getAbsolutePath()};
+
+		String bowtieBuildPath = (this.project.getBowtieDirectory()!=null?this.project.getBowtieDirectory().getAbsolutePath()+File
+				.separator:"")+"bowtie-build";
+
+		String [] command=new String[]{bowtieBuildPath,bisulfitedReference.getAbsolutePath(),bisulfitedReference.getAbsolutePath()};
 		
 		int result=Tools.executeProcessWait(command,null,null);	
 		
@@ -266,18 +271,22 @@ public class BowtieAlignment {
 						"(see .log file)...... ");
 				
 				String [] command = null;
-				
+
+				String bowtiePath = (sample.getProject().getBowtieDirectory()!=null?sample.getProject()
+						.getBowtieDirectory().getAbsolutePath()+File
+						.separator:"")+"bowtie";
 				if (!sample.isPaired()){
 					if (nohead){
-						command=new String[]{sample.getProject().getBowtieDirectory().getAbsolutePath()+File.separator+"bowtie", "-t","--chunkmbs",""+chunkmbs,"--mm",solexaQ.getParameterValue(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--sam-nohead","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--best","--nomaqround",ref.getAbsolutePath(),"-"};
+						command=new String[]{bowtiePath, "-t","--chunkmbs",""+chunkmbs,"--mm",solexaQ.getParameterValue
+								(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--sam-nohead","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--best","--nomaqround",ref.getAbsolutePath(),"-"};
 					}else{
-						command=new String[]{sample.getProject().getBowtieDirectory().getAbsolutePath()+File.separator+"bowtie", "-t","--chunkmbs",""+chunkmbs,solexaQ.getParameterValue(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--best","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--nomaqround",ref.getAbsolutePath(),"-"};				
+						command=new String[]{bowtiePath, "-t","--chunkmbs",""+chunkmbs,solexaQ.getParameterValue(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--best","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--nomaqround",ref.getAbsolutePath(),"-"};
 					}
 				}else{ //paired
 					if (nohead){
-						command=new String[]{sample.getProject().getBowtieDirectory().getAbsolutePath()+File.separator+"bowtie", "-t","--chunkmbs",""+chunkmbs,"--mm",solexaQ.getParameterValue(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--sam-nohead","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--best","--nomaqround",ref.getAbsolutePath(),"-I", ""+I, "-X",""+X, "--fr", "--12", "-"};
+						command=new String[]{bowtiePath, "-t","--chunkmbs",""+chunkmbs,"--mm",solexaQ.getParameterValue(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--sam-nohead","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--best","--nomaqround",ref.getAbsolutePath(),"-I", ""+I, "-X",""+X, "--fr", "--12", "-"};
 					}else{
-						command=new String[]{sample.getProject().getBowtieDirectory().getAbsolutePath()+File.separator+"bowtie", "-t","--chunkmbs",""+chunkmbs,solexaQ.getParameterValue(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--best","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--nomaqround",ref.getAbsolutePath(),"-I", ""+I, "-X",""+X, "--fr", "--12", "-"};	
+						command=new String[]{bowtiePath, "-t","--chunkmbs",""+chunkmbs,solexaQ.getParameterValue(),"-e",""+e,"-l",""+l,"-n",""+n,"-k",""+k,"-M",""+M,"-S","--best","--sam-RG","ID:"+strand.name(),"--sam-RG","SM:"+strand.name(),"--nomaqround",ref.getAbsolutePath(),"-I", ""+I, "-X",""+X, "--fr", "--12", "-"};
 					}
 				}
 				
@@ -306,9 +315,7 @@ public class BowtieAlignment {
 									.replaceAll
 									(project.getOutputDirectory()+File.separator, Project.OUTPUT_DIRECTORY));
 							try {
-								PrintStream outReads = new PrintStream(new FileOutputStream(logFileName+"_reads.txt"));
 								while ((readsLine=readsStream.readLine())!=null && !shouldStop){
-									outReads.println(readsLine);
 									ps.println(readsLine);
 									
 								}
