@@ -63,7 +63,6 @@ public class CreateProjectCommand extends AbstractCommand {
 
 	@Override
 	public void execute(CLIApplication app, Map<Option, String> parameters) throws IOException {
-		logger.info("Running "+this.getName());
 		
 		File projectDirectory = new File(parameters.get(findOption("p")));
 		File referenceDirectory = new File(parameters.get(findOption("r")));
