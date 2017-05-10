@@ -200,6 +200,17 @@ public class MethylationAnalysis {
 			redirector.restoreStreams();
 	        enableSystemExitCall() ;
 		}
+
+		// patch strange picard behaviour: remove empty directory (named as the user name) that is created in the
+		// output directory if sort sams and sequence dictionary (ref_genomes/*.dict) are both created in this
+		// process. This occurs the first time the methylationanalsysis is run, where sorted and .dict files have
+		// to be created.
+		for (File f : this.project.getOutputDirectory().listFiles()) {
+			if (f.isDirectory() && f.listFiles().length == 0) {
+				f.delete();
+			}
+		}
+
 		writeRegionsMethylation(reference, sample, bedFiles);
 
 		logger.info("Methylation analysis of sample "+sample.getName()+" OK");
