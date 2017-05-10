@@ -1,7 +1,5 @@
 FROM openjdk:8-jre
 
-ADD target/dist bicycle
-
 # Get and compile samtools and bowtie
 RUN apt-get update && apt-get install -y build-essential zlib1g-dev libncurses5-dev libbz2-dev liblzma-dev libcurl3-dev libssl-dev python libtbb2 \
     && wget https://github.com/samtools/samtools/releases/download/1.4.1/samtools-1.4.1.tar.bz2 \
@@ -14,6 +12,8 @@ RUN apt-get update && apt-get install -y build-essential zlib1g-dev libncurses5-
     && unzip bowtie.zip && rm bowtie.zip \ 
     && mv bowtie-1.0.0 bowtie \    
     && apt-get clean
+
+ADD target/dist bicycle
 
 ENV PATH "$PATH:/bowtie"
 ENV PATH "$PATH:/samtools"
