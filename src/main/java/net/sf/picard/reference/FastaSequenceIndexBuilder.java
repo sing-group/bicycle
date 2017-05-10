@@ -316,12 +316,4 @@ public class FastaSequenceIndexBuilder {
     private static String toIndexFileLine(FastaSequenceIndexEntry entry) {
         return String.format("%s\t%d\t%d\t%d\t%d", entry.getContig(), entry.getSize(), entry.getLocation(), entry.getBasesPerLine(), entry.getBytesPerLine());
     }
-
-    public static void main(String[] args){
-    	FastaSequenceIndexBuilder builder = new FastaSequenceIndexBuilder(new File("/home/lipido/workspace/MethylationPipelineCVS/bin/testdata/REFERENCES/refgenome_with_control.fa"), true);
-    	FastaSequenceIndex index = builder.createIndex();
-    	
-    	FastaSequenceIndexBuilder.saveAsFaiFile(index, new File("/home/lipido/workspace/MethylationPipelineCVS/bin/testdata/REFERENCES/mu.fai"));
-    }
-    
 }
