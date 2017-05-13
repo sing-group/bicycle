@@ -32,7 +32,8 @@ import java.util.List;
 
 public class FileSequenceInputStream extends InputStream{
 
-	private List<FileInputStream> inputStreams = new LinkedList<FileInputStream>(); 
+	private static final int MAX_ATTEMPTS = 10;
+	private List<FileInputStream> inputStreams = new LinkedList<FileInputStream>();
 	private List<File> files = new LinkedList<File>();
 	private long totalReaded = 0;
 	private long currentReaded = 0;
@@ -141,10 +142,33 @@ public class FileSequenceInputStream extends InputStream{
 		else{
 			long remaining = currentLength() - currentReaded;
 			if (remaining >= len){
-				int readed = this.current.read(b, off,len);
-				totalReaded += readed;
-				currentReaded += readed;
-				toret = readed;
+				int attempts = 0;
+				boolean success =  false;
+				while (!success) {
+					try {
+						attempts ++;
+						int readed = this.current.read(b, off, len);
+						success = true;
+
+						totalReaded += readed;
+						currentReaded += readed;
+						toret = readed;
+					} catch (IOException e) {
+						if (attempts < MAX_ATTEMPTS) {
+							System.err.print("Catched exception on read(). Maybe concurrency in some file-systems... ");
+							System.err.println("Re-tyring after sleep. attempts: "+attempts+"/"+MAX_ATTEMPTS);
+							try {
+								Thread.sleep(100);
+							} catch (InterruptedException e1) {
+								e1.printStackTrace();
+							}
+						} else {
+							System.err.println("Reached max attempts: "+attempts+"/"+MAX_ATTEMPTS+". Throwing " +
+									"exception");
+							throw e;
+						}
+					}
+				}
 			}else{
 				if (inLastFile()){
 					int readed = this.current.read(b, off,len);
