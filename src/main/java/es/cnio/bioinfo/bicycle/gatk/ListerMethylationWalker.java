@@ -260,7 +260,7 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 	private ContigBisulfiteError error;
 	
 	private HashMap<Strand, File> methylationFiles = new HashMap<Strand, File>();
-	private HashMap<Strand, PrintStream> methylationFilesOuts = new HashMap<Strand, PrintStream>();
+	//private HashMap<Strand, PrintStream> methylationFilesOuts = new HashMap<Strand, PrintStream>();
 	
 	private HashMap<Strand, HashMap<Context, Double>> cutOffs = new HashMap<Strand,HashMap<Context, Double>>();
 
@@ -738,21 +738,10 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 
 		out.println("Error computed "+this.error);
 
-		for (Strand strand: Strand.values()){
-			try {
-				File file = getMethylationfile(strand);
-				PrintStream outFile = new PrintStream(new FileOutputStream(file));
-				methylationFilesOuts.put(strand, outFile);
-				methylationFiles.put(strand, file);
-				
-				
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
+		for (Strand strand: Strand.values()) {
+			File file = getMethylationfile(strand);
+			methylationFiles.put(strand, file);
 		}
-		
 	}
 
 	private File getMethylationfile(Strand strand) {
