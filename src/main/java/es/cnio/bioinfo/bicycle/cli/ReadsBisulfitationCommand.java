@@ -42,9 +42,9 @@ public class ReadsBisulfitationCommand extends ProjectCommand {
 
 	@Override
 	public void executeImpl(CLIApplication app, Project project, Map<Option, String> parameters) throws Exception {
-		
-		
-		for (Sample s: project.getSamples()){
+
+
+		for (Sample s : project.getSamples()) {
 			SampleBisulfitation sb = new SampleBisulfitation(s);
 			sb.computeSampleBisulfitation(parameters.containsKey(this.findOption("b")));
 		}
@@ -58,8 +58,9 @@ public class ReadsBisulfitationCommand extends ProjectCommand {
 				"remove unconverted reads (those were the bisulfite " +
 				"treatment failed, following the rule applied in Lister et al., Nature 2009)", true, false));
 		*/
-		toret.add(new Option("remove-unconverted-barcodes", "b", "remove reads with unconverted barcodes", true, false));
-		
+		toret.add(new Option("remove-unconverted-barcodes", "b", "remove reads with unconverted barcodes", true,
+				false));
+
 		return toret;
 	}
 

@@ -28,113 +28,114 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 public enum Strand {
 
 	WATSON(".*CT.*WATSON.*"), CRICK(".*CT.*CRICK.*");
-	
+
 	private Pattern fileRegExp;
-	private Strand(String suffix){
+
+	private Strand(String suffix) {
 		this.fileRegExp = Pattern.compile(suffix);
 	}
-	
-	public Pattern getFileRegExp(){
+
+	public Pattern getFileRegExp() {
 		return this.fileRegExp;
 	}
-	
-	public Context getContext(ReferenceContext ref, long pos){
-		if (this==WATSON){
-			if (ref.getBase()=='C'){
-				if (ref.getWindow().getStop()-pos==2){
-					
+
+	public Context getContext(ReferenceContext ref, long pos) {
+		if (this == WATSON) {
+			if (ref.getBase() == 'C') {
+				if (ref.getWindow().getStop() - pos == 2) {
+
 					byte[] downstream = ref.getBases();
-					
-					if (downstream[3]=='G'){
+
+					if (downstream[3] == 'G') {
 						return Context.CG;
-					}else if (downstream[4]=='G'){
+					} else if (downstream[4] == 'G') {
 						return Context.CHG;
-					}else{
+					} else {
 						return Context.CHH;
 					}
-				}else{
-					System.err.println("null context in "+ref.getLocus().getContig()+":"+pos+" strand Watson");
+				} else {
+					System.err.println("null context in " + ref.getLocus().getContig() + ":" + pos + " strand Watson");
 					return null;
 				}
-			}else{
+			} else {
 				throw new IllegalArgumentException("Can't compute Watson context in a reference which is not C");
 			}
-		}else if (this==CRICK){
-			if (ref.getBase()=='G'){
-				if (pos-ref.getWindow().getStart()==2){
-					
+		} else if (this == CRICK) {
+			if (ref.getBase() == 'G') {
+				if (pos - ref.getWindow().getStart() == 2) {
+
 					byte[] bases = ref.getBases();
-					byte[] upstream =new byte[2];
+					byte[] upstream = new byte[2];
 					System.arraycopy(bases, 0, upstream, 0, 2);
-					
-					if (upstream[1]=='C'){
+
+					if (upstream[1] == 'C') {
 						return Context.CG;
-					}else if (upstream[0]=='C'){
+					} else if (upstream[0] == 'C') {
 						return Context.CHG;
-					}else{
+					} else {
 						return Context.CHH;
 					}
-				}else{
-					System.err.println("null context in "+ref.getLocus().getContig()+":"+pos+" strand Crick");
+				} else {
+					System.err.println("null context in " + ref.getLocus().getContig() + ":" + pos + " strand Crick");
 					return null;
 				}
-			}else{
+			} else {
 				throw new IllegalArgumentException("Can't compute Watson context in a reference which is not C");
 			}
-		}else {
-			throw new IllegalArgumentException("this strand "+this+" does not support context calculation");
+		} else {
+			throw new IllegalArgumentException("this strand " + this + " does not support context calculation");
 		}
 	}
-	
-	public char getCytosineBase(){
-		if (this==WATSON){
+
+	public char getCytosineBase() {
+		if (this == WATSON) {
 			return 'C';
 		}
-		if (this==CRICK){
+		if (this == CRICK) {
 			return 'G';
 		}
-		throw new IllegalArgumentException("this strand "+this+" does not support getCytonsine");
+		throw new IllegalArgumentException("this strand " + this + " does not support getCytonsine");
 	}
-	
-	public char getGuanineBase(){
-		if (this==WATSON){
+
+	public char getGuanineBase() {
+		if (this == WATSON) {
 			return 'G';
 		}
-		if (this==CRICK){
+		if (this == CRICK) {
 			return 'C';
 		}
-		throw new IllegalArgumentException("this strand "+this+" does not support getGuanine");
+		throw new IllegalArgumentException("this strand " + this + " does not support getGuanine");
 	}
-	public char getThymineBase(){
-		if (this==WATSON){
+
+	public char getThymineBase() {
+		if (this == WATSON) {
 			return 'T';
 		}
-		if (this==CRICK){
+		if (this == CRICK) {
 			return 'A';
 		}
-		throw new IllegalArgumentException("this strand "+this+" does not support getThymine");
+		throw new IllegalArgumentException("this strand " + this + " does not support getThymine");
 	}
-	
-	public long downstream(long pos){
-		if (this==WATSON){
+
+	public long downstream(long pos) {
+		if (this == WATSON) {
 			return pos + 1;
 		}
-		if (this==CRICK){
+		if (this == CRICK) {
 			return pos - 1;
 		}
-		throw new IllegalArgumentException("this strand "+this+" does not support downstream");
+		throw new IllegalArgumentException("this strand " + this + " does not support downstream");
 	}
-	
-	public boolean isNegative(){
-		if (this==WATSON){
+
+	public boolean isNegative() {
+		if (this == WATSON) {
 			return false;
 		}
-		if (this==CRICK){
-			return true;			
+		if (this == CRICK) {
+			return true;
 		}
-		throw new IllegalArgumentException("this strand "+this+" does not support isNegative");
+		throw new IllegalArgumentException("this strand " + this + " does not support isNegative");
 	}
-	
-	
-	
+
+
 }

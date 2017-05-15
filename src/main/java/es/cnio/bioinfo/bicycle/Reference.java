@@ -38,40 +38,41 @@ public class Reference {
 		this.project = project;
 		this.referenceFile = referenceFile;
 	}
-	
+
 	public File getReferenceFile() {
 		return referenceFile;
 	}
-	
+
 	public Project getProject() {
 		return project;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		return (obj instanceof Reference && ((Reference) obj).getReferenceFile().equals(this.referenceFile));
 	}
-	
+
 	@Override
 	public int hashCode() {
 		return this.referenceFile.hashCode();
 	}
-	
+
 	public List<String> getSequenceNames() {
 		try {
-			File index = new File(this.project.getWorkingDirectory()+File.separator+this.referenceFile.getName()+".index"); 
+			File index = new File(this.project.getWorkingDirectory() + File.separator + this.referenceFile.getName() +
+					".index");
 			if (!index.exists()) {
-					createReferenceIndex(index);
+				createReferenceIndex(index);
 			}
-			
+
 			Scanner sc = new Scanner(index);
-			
+
 			List<String> sequenceNames = new LinkedList<>();
 			while (sc.hasNextLine()) {
 				sequenceNames.add(sc.nextLine().split("\t")[0]);
 			}
 			sc.close();
-			
+
 			return sequenceNames;
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException(e);
@@ -89,6 +90,6 @@ public class Reference {
 		}
 		sc.close();
 		indexOut.close();
-			
+
 	}
 }

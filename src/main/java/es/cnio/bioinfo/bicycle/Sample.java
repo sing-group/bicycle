@@ -30,21 +30,20 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Sample {
-	
-	private String name="unnamed-sample";
+
+	private String name = "unnamed-sample";
 	private List<File> readsFiles = new LinkedList<File>();
 	private boolean paired = false;
 	private boolean directional = true; //directional = Lister, Cokus otherwise
-	private String mate1Regexp="_1.fastq";
+	private String mate1Regexp = "_1.fastq";
 	//for paired-end
 	private List<File> readsFilesM1 = new LinkedList<File>();
 	private List<File> readsFilesM2 = new LinkedList<File>();
-	
+
 	private Project project;
-	
-	Sample(Project project, String name, boolean paired, boolean directional, 
-			String mate1Regexp) 
-	{
+
+	Sample(Project project, String name, boolean paired, boolean directional,
+		   String mate1Regexp) {
 		super();
 		this.name = name;
 		this.project = project;
@@ -52,105 +51,109 @@ public class Sample {
 		this.directional = directional;
 		this.mate1Regexp = mate1Regexp;
 	}
-	
+
 	Sample(Project project, String name) {
 		super();
 		this.name = name;
 		this.project = project;
 	}
-	
+
 	public String getName() {
 		return name;
 	}
-	
+
 	public boolean isPaired() {
 		return paired;
 	}
-	
+
 	public boolean isDirectional() {
 		return directional;
 	}
-	
-	public List<File> getReadsFiles(){
+
+	public List<File> getReadsFiles() {
 		return Collections.unmodifiableList(readsFiles);
 	}
-		
-	public List<File> getReadsMate1Files(){
-		if (!this.project.isPaired()){
+
+	public List<File> getReadsMate1Files() {
+		if (!this.project.isPaired()) {
 			throw new IllegalArgumentException("The project is not a paired-end project");
 		}
 		return Collections.unmodifiableList(readsFilesM1);
 	}
-	public List<File> getReadsMate2Files(){
-		if (!this.project.isPaired()){
+
+	public List<File> getReadsMate2Files() {
+		if (!this.project.isPaired()) {
 			throw new IllegalArgumentException("The project is not a paired-end project");
 		}
 		return Collections.unmodifiableList(readsFilesM2);
-		
+
 	}
-	
+
 	public Project getProject() {
 		return project;
 	}
-	
-	private void addReadsFile(File f){
+
+	private void addReadsFile(File f) {
 		this.readsFiles.add(f);
-		if (this.paired){
-			if (f.getName().matches(".*"+this.mate1Regexp+".*")){
+		if (this.paired) {
+			if (f.getName().matches(".*" + this.mate1Regexp + ".*")) {
 				this.readsFilesM1.add(f);
-			}else{
+			} else {
 				this.readsFilesM2.add(f);
 			}
 		}
 	}
-	
-	public static List<Sample> buildSamples(Project project){
+
+	public static List<Sample> buildSamples(Project project) {
 		return buildSamples(project, false, true, "");
 	}
-	
+
 	/**
 	 * Builds samples from a directory which should contain reads files. Each reads file in the root of
 	 * the path is a independent sample (with 1 reads file). If there are subdirectories, each subdirectory is a
 	 * sample with all reads files inside it belonging to this sample.
-	 * 
+	 *
 	 * @param readsPath
 	 * @return
 	 */
-	public static List<Sample> buildSamples(Project project, boolean paired, boolean directional, String mate1Regexp){
+	public static List<Sample> buildSamples(Project project, boolean paired, boolean directional, String mate1Regexp) {
 		File readsPath = project.getReadsDirectory();
-		if (!readsPath.exists() || !readsPath.isDirectory()){
-			throw new IllegalArgumentException("Cannot find "+readsPath.getAbsolutePath()+" or it is not a directory, or it is not accessible");
+		if (!readsPath.exists() || !readsPath.isDirectory()) {
+			throw new IllegalArgumentException("Cannot find " + readsPath.getAbsolutePath() + " or it is not a " +
+					"directory, or it is not accessible");
 		}
 		List<Sample> toret = new LinkedList<Sample>();
 		for (File file : readsPath.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return !name.equals("CVS");
-				}
-				})){
-			
-			if (file.isDirectory()){
+			@Override
+			public boolean accept(File dir, String name) {
+				return !name.equals("CVS");
+			}
+		})) {
+
+			if (file.isDirectory()) {
 				if (file.isHidden()) continue;
 				Sample s = new Sample(project, file.getName(), paired, directional, mate1Regexp);
-				
+
 				File[] files = file.listFiles();
-				Arrays.sort(files, new Comparator<File>(){
+				Arrays.sort(files, new Comparator<File>() {
 					@Override
 					public int compare(File arg0, File arg1) {
 						return arg0.getName().compareTo(arg1.getName());
 					}
-					
+
 				});
-				for (File subdirFile : files){
-					if (!subdirFile.isDirectory() && !file.isHidden()){
+				for (File subdirFile : files) {
+					if (!subdirFile.isDirectory() && !file.isHidden()) {
 						s.addReadsFile(subdirFile);
 					}
 				}
-				
+
 				s.validate();
 				toret.add(s);
-			}else if (!file.isHidden()){
-				if (paired) throw new IllegalArgumentException("Paired-end samples files must be inside a directory per sample");
+			} else if (!file.isHidden()) {
+				if (paired)
+					throw new IllegalArgumentException("Paired-end samples files must be inside a directory per " +
+							"sample");
 				Sample s = new Sample(project, file.getName(), paired, directional, mate1Regexp);
 				s.addReadsFile(file);
 				toret.add(s);
@@ -159,25 +162,27 @@ public class Sample {
 		}
 		return toret;
 	}
-	
+
 	private void validate() {
-		if (this.paired && this.readsFilesM1.size() != this.readsFilesM2.size()){
-			throw new IllegalArgumentException("This sample is paired end, but has a different number of read files for each mate. mate 1: "+this.readsFilesM1+". mate 2: "+this.readsFilesM2);
+		if (this.paired && this.readsFilesM1.size() != this.readsFilesM2.size()) {
+			throw new IllegalArgumentException("This sample is paired end, but has a different number of read files " +
+					"for each mate. mate 1: " + this.readsFilesM1 + ". mate 2: " + this.readsFilesM2);
 		}
-		
+
 	}
+
 	@Override
 	public boolean equals(Object obj) {
-		if (!( obj instanceof Sample)){
+		if (!(obj instanceof Sample)) {
 			return false;
 		}
 		Sample sample = (Sample) obj;
 		return sample.getName().equals(this.getName()) && sample.readsFiles.equals(this.readsFiles);
 	}
-	
+
 	@Override
 	public String toString() {
 		return this.getName();
 	}
-	
+
 }

@@ -21,7 +21,6 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 
 package es.cnio.bioinfo.bicycle.cli;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -43,18 +42,18 @@ public class ReferenceIndexingCommand extends ProjectCommand {
 
 	@Override
 	public void executeImpl(CLIApplication app, Project project, Map<Option, String> parameters) throws Exception {
-		
-		
+
+
 		BowtieAlignment al = new BowtieAlignment(project);
-		
-		for (Reference ref : project.getReferences()){
+
+		for (Reference ref : project.getReferences()) {
 			al.buildBowtieIndex(ref);
 		}
 	}
 
 	@Override
 	protected List<Option> createOptions() {
-		List<Option> toret = super.createOptions();		
+		List<Option> toret = super.createOptions();
 		return toret;
 	}
 

@@ -33,6 +33,7 @@ import es.cnio.bioinfo.bicycle.Project;
 public class CreateProjectCommand extends AbstractCommand {
 
 	private static final Logger logger = Logger.getLogger(CreateProjectCommand.class.getSimpleName());
+
 	@Override
 	public String getName() {
 		return "create-project";
@@ -46,24 +47,29 @@ public class CreateProjectCommand extends AbstractCommand {
 	@Override
 	public List<Option> createOptions() {
 		List<Option> toret = new LinkedList<Option>();
-		
+
 		toret.add(new Option("project-directory", "p", "directory where files will be stored", false, true));
-		toret.add(new Option("reference-directory", "r", "directory with reference genomes (fasta files)", false, true));
-		toret.add(new Option("reads-directory", "f", "directory with reads samples (directories with fastq files). One directory per sample", false, true));
-		toret.add(new Option("bowtie-directory", "b", "directory where bowtie aligner is installed. If not specified," +
+		toret.add(new Option("reference-directory", "r", "directory with reference genomes (fasta files)", false,
+				true));
+		toret.add(new Option("reads-directory", "f", "directory with reads samples (directories with fastq files). " +
+				"One" +
+				" directory per sample", false, true));
+		toret.add(new Option("bowtie-directory", "b", "directory where bowtie aligner is installed. If not " +
+				"specified," +
 				" bowtie is expected to be in PATH",
 				true, true));
 		toret.add(new Option("samtools-directory", "s", "directory where samtools are installed. If not specified, " +
 				"samtools is expected to be in PATH", true, true));
 		toret.add(new Option("non-directional", "n", "bs-seq was made in non-directional protocol", true, false));
-		toret.add(new Option("paired-mate1-regexp", "m", "Enable paired-end mode. The value is a regular expression which only can be found inside the mate 1 fastq file names. For example: _1.fastq", true, true));
-		
+		toret.add(new Option("paired-mate1-regexp", "m", "Enable paired-end mode. The value is a regular expression " +
+				"which only can be found inside the mate 1 fastq file names. For example: _1.fastq", true, true));
+
 		return toret;
 	}
 
 	@Override
 	public void execute(CLIApplication app, Map<Option, String> parameters) throws IOException {
-		
+
 		File projectDirectory = new File(parameters.get(findOption("p")));
 		File referenceDirectory = new File(parameters.get(findOption("r")));
 		File readsDirectory = new File(parameters.get(findOption("f")));
@@ -80,13 +86,15 @@ public class CreateProjectCommand extends AbstractCommand {
 
 		String mate1Regexp = parameters.get(findOption("m"));
 		boolean directional = !parameters.containsKey(findOption("n"));
-		
+
 		Project project = null;
-		if (mate1Regexp!=null){
-			project = Project.buildNewProject(projectDirectory, referenceDirectory, readsDirectory, bowtieDirectory, samtoolsDirectory, directional, true, mate1Regexp);
-				
-		} else{
-			project = Project.buildNewProject(projectDirectory, referenceDirectory, readsDirectory, bowtieDirectory, samtoolsDirectory, directional);
+		if (mate1Regexp != null) {
+			project = Project.buildNewProject(projectDirectory, referenceDirectory, readsDirectory, bowtieDirectory,
+					samtoolsDirectory, directional, true, mate1Regexp);
+
+		} else {
+			project = Project.buildNewProject(projectDirectory, referenceDirectory, readsDirectory, bowtieDirectory,
+					samtoolsDirectory, directional);
 		}
 		ProjectCommand.writeExecutionLog(app, project);
 	}

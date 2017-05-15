@@ -37,88 +37,86 @@ import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Quals;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
-import es.cnio.bioinfo.bicycle.operations.SampleBisulfitation;
 import es.cnio.bioinfo.bicycle.test.Utils;
 
 public class SimulatedNonDirectionalDataAnalysisTest {
 
-	
-	
+
 	private Project prepareProject() throws IOException {
-		
-		File tempDir = Utils.generateTempDirName("newproject-simulated-data");	
-		
+
+		File tempDir = Utils.generateTempDirName("newproject-simulated-data");
+
 		Project p = Project.buildNewProject(
 				tempDir,
-				new File(Utils.getSimulatedDataReferenceDirectory()), 
-				new File(Utils.getSimulatedNonDirectionalDataReadsDirectory()), 
+				new File(Utils.getSimulatedDataReferenceDirectory()),
+				new File(Utils.getSimulatedNonDirectionalDataReadsDirectory()),
 				new File(Utils.getBowtiePath()),
 				new File(Utils.getSamtoolsPath()),
 				true);
-		
+
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 		BowtieAlignment ba = new BowtieAlignment(p);
-		
-		for (Reference ref : p.getReferences()){				
+
+		for (Reference ref : p.getReferences()) {
 			rb.computeReferenceBisulfitation(Replacement.CT, ref, true);
 			rb.computeReferenceBisulfitation(Replacement.GA, ref, true);
 			ba.buildBowtieIndex(ref);
 		}
-		for (Sample sample : p.getSamples()){
+		for (Sample sample : p.getSamples()) {
 			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);*/
-			for (Reference reference : p.getReferences()){
+			for (Reference reference : p.getReferences()) {
 				ba.performBowtieAlignment(sample, reference, false, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
 			}
 		}
-			
-		return p;		
+
+		return p;
 	}
-	
+
 	@Test
-	public void analysisMultithread() throws IOException, InterruptedException{
+	public void analysisMultithread() throws IOException, InterruptedException {
 		Project project = prepareProject();
-	//	Project project = Project.readFromDirectory(new File("/tmp/newproject-simulated-data181c07eb-a533-4eec-91ab-47177f88f7ff"));
-		try{
-			
+		//	Project project = Project.readFromDirectory(new File
+		// ("/tmp/newproject-simulated-data181c07eb-a533-4eec-91ab-47177f88f7ff"));
+		try {
+
 			MethylationAnalysis ma = new MethylationAnalysis(project);
 
-			
-			for (Sample sample: project.getSamples()){
-				for (Reference reference : project.getReferences()){
-					
+
+			for (Sample sample : project.getSamples()) {
+				for (Reference reference : project.getReferences()) {
+
 					ma.analyzeWithFixedErrorRate(
-							reference, 
-							sample, 
-							true, 
-							4, 
-							true, 
+							reference,
+							sample,
+							true,
+							4,
+							true,
 							true,
 							false,
 							true,
 							1,
-							0.01, 
+							0.01,
 							4,
-							new ArrayList<File>(), 
+							new ArrayList<File>(),
 							0.0, 0.0);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
-					
 
-					
-					
+
 					System.err.println("==========SUMMARY==========");
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
-					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.29")!=-1); //assert the 30% methylation level on CG
-					
+					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.29") != -1); //assert
+					// the 30% methylation level on CG
+
 					System.err.println("===========================");
-					
+
 				}
 			}
 		} finally {
 			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
-		
+
 	}
-	
-	
+
+
 }

@@ -27,10 +27,10 @@ import java.util.Map;
 public interface Command {
 
 	public String getName();
+
 	public String getDescription();
+
 	public List<Option> getOptions();
-	
+
 	public void execute(CLIApplication app, Map<Option, String> parameters) throws Exception;
-	
-	
 }

@@ -40,41 +40,43 @@ public class ReferenceBisulfitationTest {
 		String aSequence = "ACCCCGGGTTT";
 		String aBisulfitedCTSequence = "ATTTTGGGTTT";
 		String aBisulfitedGASequence = "ACCCCAAATTT";
-		
-		File tempDir = Utils.generateTempDirName("newproject");	
+
+		File tempDir = Utils.generateTempDirName("newproject");
 		File refsDir = Utils.generateTempDirName("refs");
 		refsDir.mkdir();
 		File genome1 = Utils.touchFile(refsDir, "genome01.fasta");
-		Utils.append(genome1, ">seq\n"+aSequence+"\n");
+		Utils.append(genome1, ">seq\n" + aSequence + "\n");
 		File genome2 = Utils.touchFile(refsDir, "genome02.fasta");
-		Utils.append(genome2, ">seq\n"+aSequence+"\n");
-		try{
+		Utils.append(genome2, ">seq\n" + aSequence + "\n");
+		try {
 			Project p = Project.buildNewProject(
 					tempDir,
-					refsDir, 
-					new File(Utils.getReadsDirectory()), 
+					refsDir,
+					new File(Utils.getReadsDirectory()),
 					new File(Utils.getBowtiePath()),
 					new File(Utils.getSamtoolsPath()),
 					true);
-			
+
 			ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
-			
-			
-			for (Reference ref : p.getReferences()){
+
+
+			for (Reference ref : p.getReferences()) {
 				rb.computeReferenceBisulfitation(Replacement.CT, ref, false);
 				rb.computeReferenceBisulfitation(Replacement.GA, ref, false);
-				
+
 				assertTrue(rb.getBisulfitedReference(Replacement.CT, ref).exists());
 				assertTrue(rb.getBisulfitedReference(Replacement.GA, ref).exists());
-				assertTrue(Utils.readFile(rb.getBisulfitedReference(Replacement.CT, ref)).indexOf(aBisulfitedCTSequence)!=-1);
-				assertTrue(Utils.readFile(rb.getBisulfitedReference(Replacement.GA, ref)).indexOf(aBisulfitedGASequence)!=-1);
+				assertTrue(Utils.readFile(rb.getBisulfitedReference(Replacement.CT, ref)).indexOf
+						(aBisulfitedCTSequence) != -1);
+				assertTrue(Utils.readFile(rb.getBisulfitedReference(Replacement.GA, ref)).indexOf
+						(aBisulfitedGASequence) != -1);
 			}
-			
 
-		}finally{
+
+		} finally {
 			Utils.deleteDir(tempDir);
 			Utils.deleteDir(refsDir);
-		}		
+		}
 	}
 
 }

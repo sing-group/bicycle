@@ -22,9 +22,7 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 package es.cnio.bioinfo.bicycle.cli;
 
 public class Main {
-
-	
-	public static void main(String[] args){
+	public static void main(String[] args) {
 		CLIApplication app = new BicycleApplication();
 		app.run(args);
 	}

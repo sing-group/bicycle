@@ -21,7 +21,7 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 
 package es.cnio.bioinfo.bicycle.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,39 +36,39 @@ public class ReadsBisulfitationTest {
 
 	@Test
 	public void test() throws IOException {
-		File tempDir = Utils.generateTempDirName("newproject");	
+		File tempDir = Utils.generateTempDirName("newproject");
 		File readsDir = Utils.generateTempDirName("reads");
 		readsDir.mkdir();
-		File sample1 = new File(readsDir.getAbsolutePath()+File.separator+"sample01");
+		File sample1 = new File(readsDir.getAbsolutePath() + File.separator + "sample01");
 		sample1.mkdir();
-		File sample2 = new File(readsDir.getAbsolutePath()+File.separator+"sample02");
+		File sample2 = new File(readsDir.getAbsolutePath() + File.separator + "sample02");
 		sample2.mkdir();
 		Utils.touchFile(sample1, "reads01.fastq");
 		Utils.touchFile(sample1, "reads02.fastq");
 		Utils.touchFile(sample1, "reads03.fastq");
 		Utils.touchFile(sample1, "reads04.fastq");
-		try{
-			
-			
+		try {
+
+
 			Project p = Project.buildNewProject(
 					tempDir,
-					new File(Utils.getReferenceDirectory()), 
-					readsDir, 
+					new File(Utils.getReferenceDirectory()),
+					readsDir,
 					new File(Utils.getBowtiePath()),
 					new File(Utils.getSamtoolsPath()),
 					true);
-			for (Sample sample : p.getSamples()){
+			for (Sample sample : p.getSamples()) {
 				SampleBisulfitation sb = new SampleBisulfitation(sample);
 				sb.computeSampleBisulfitation(false);
-				for (File readsFile : sample.getReadsFiles()){
+				for (File readsFile : sample.getReadsFiles()) {
 					assertTrue(sb.getBisulfitedFile(readsFile).exists());
 				}
-					
+
 			}
-		}finally{
+		} finally {
 			Utils.deleteDir(tempDir);
 			Utils.deleteDir(readsDir);
-		}		
+		}
 	}
 
 }

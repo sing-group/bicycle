@@ -38,21 +38,23 @@ import java.util.logging.Logger;
 public class Project {
 
 	private static final Logger logger = Logger.getLogger(Project.class.getSimpleName());
-	
-	public static final String WORKING_DIRECTORY="workingDirectory"+File.separator;
-	public static final String OUTPUT_DIRECTORY="output"+File.separator;
-	public static final String CONFIG_FILE="config.txt";
-	
+
+	public static final String WORKING_DIRECTORY = "workingDirectory" + File.separator;
+	public static final String OUTPUT_DIRECTORY = "output" + File.separator;
+	public static final String CONFIG_FILE = "config.txt";
+
 	private File bowtieDirectory, samtoolsDirectory, projectDirectory, referenceDirectory, readsDirectory;
 	private boolean paired = false;
 	private boolean directional = true;
 	private String mate1regexp = null;
-	
+
 	private List<Sample> samples = new LinkedList<Sample>();
-	
+
 	private Map<String, String> properties = new HashMap<String, String>();
-	protected Project(){}
-	
+
+	protected Project() {
+	}
+
 	public File getBowtieDirectory() {
 		return bowtieDirectory;
 	}
@@ -60,7 +62,7 @@ public class Project {
 	public File getSamtoolsDirectory() {
 		return samtoolsDirectory;
 	}
-	
+
 	public File getProjectDirectory() {
 		return projectDirectory;
 	}
@@ -74,51 +76,52 @@ public class Project {
 	}
 
 	public File getWorkingDirectory() {
-		return new File(projectDirectory.getAbsolutePath()+File.separator+WORKING_DIRECTORY);
+		return new File(projectDirectory.getAbsolutePath() + File.separator + WORKING_DIRECTORY);
 	}
-	
+
 	public File getOutputDirectory() {
-		return new File(projectDirectory.getAbsolutePath()+File.separator+OUTPUT_DIRECTORY);
+		return new File(projectDirectory.getAbsolutePath() + File.separator + OUTPUT_DIRECTORY);
 	}
-	
-	public File getConfigFile(){
-		return new File(projectDirectory.getAbsolutePath()+File.separator+CONFIG_FILE);
+
+	public File getConfigFile() {
+		return new File(projectDirectory.getAbsolutePath() + File.separator + CONFIG_FILE);
 	}
 
 	public List<Sample> getSamples() {
 		return Collections.unmodifiableList(samples);
 	}
-	
+
 	public boolean isPaired() {
 		return paired;
 	}
-	
+
 	public boolean isDirectional() {
 		return directional;
 	}
-	
+
 	String getMate1regexp() {
 		return mate1regexp;
 	}
-	
-	public List<Reference> getReferences(){		
-		List<File> files = Arrays.asList(this.getReferenceDirectory().listFiles(new FileFilter(){
+
+	public List<Reference> getReferences() {
+		List<File> files = Arrays.asList(this.getReferenceDirectory().listFiles(new FileFilter() {
 			@Override
 			public boolean accept(File file) {
 				return file.isFile() && file.getName().endsWith(".fa");
-			}			
+			}
 		}));
-		
-		ArrayList<Reference> toret = new ArrayList<Reference>();		
-		for (File refFile : files){
+
+		ArrayList<Reference> toret = new ArrayList<Reference>();
+		for (File refFile : files) {
 			toret.add(new Reference(this, refFile));
 		}
-		
+
 		return toret;
 	}
-	public void saveProject() throws IOException{
-		BufferedWriter wr = new BufferedWriter(new FileWriter(this.getConfigFile()));	
-		wr.write("project_directory:"+this.getProjectDirectory().getAbsolutePath());
+
+	public void saveProject() throws IOException {
+		BufferedWriter wr = new BufferedWriter(new FileWriter(this.getConfigFile()));
+		wr.write("project_directory:" + this.getProjectDirectory().getAbsolutePath());
 		wr.newLine();
 
 		if (bowtieDirectory != null) {
@@ -131,129 +134,127 @@ public class Project {
 			wr.newLine();
 		}
 
-		wr.write("reference_directory:"+referenceDirectory.getAbsolutePath());
-		wr.newLine();		
-		wr.write("reads_directory:"+readsDirectory.getAbsolutePath());
+		wr.write("reference_directory:" + referenceDirectory.getAbsolutePath());
 		wr.newLine();
-		wr.write("paired:"+paired);
+		wr.write("reads_directory:" + readsDirectory.getAbsolutePath());
 		wr.newLine();
-		wr.write("directional:"+directional);
+		wr.write("paired:" + paired);
 		wr.newLine();
-		if (paired){ 
-			wr.write("mate1regexp:"+mate1regexp);
+		wr.write("directional:" + directional);
+		wr.newLine();
+		if (paired) {
+			wr.write("mate1regexp:" + mate1regexp);
 			wr.newLine();
 		}
-		
-		for (String prop: this.properties.keySet()){
-			wr.write(prop+":"+this.properties.get(prop));
+
+		for (String prop : this.properties.keySet()) {
+			wr.write(prop + ":" + this.properties.get(prop));
 			wr.newLine();
 		}
 		wr.close();
-		
+
 	}
-	public void addProperty(String name, String value){
+
+	public void addProperty(String name, String value) {
 		this.properties.put(name, value);
 	}
-	public String getProperty(String name){
+
+	public String getProperty(String name) {
 		return this.properties.get(name);
 	}
 
 	public static Project buildNewProject(File projectDirectory,
-			File referenceDirectory, File readsDirectory, File bowtieDirectory,
-			File samtoolsDirectory, boolean directional) throws IOException {
+										  File referenceDirectory, File readsDirectory, File bowtieDirectory,
+										  File samtoolsDirectory, boolean directional) throws IOException {
 		return buildNewProject(projectDirectory, referenceDirectory,
 				readsDirectory, bowtieDirectory, samtoolsDirectory, directional, false, null);
 	}
 
 	public static Project buildNewProject(File projectDirectory,
-			File referenceDirectory, File readsDirectory, File bowtieDirectory,
-			File samtoolsDirectory, boolean isDirectional, boolean isPaired, String mate1regexp)
+										  File referenceDirectory, File readsDirectory, File bowtieDirectory,
+										  File samtoolsDirectory, boolean isDirectional, boolean isPaired, String
+												  mate1regexp)
 			throws IOException {
 		if (projectDirectory.exists()) {
-			throw new IllegalArgumentException("The project folder already exists, please remove it first\n");			
-		}	
+			throw new IllegalArgumentException("The project folder already exists, please remove it first\n");
+		}
 
 		logger.info("Creating new project");
 		Project p = new Project();
 		p.projectDirectory = projectDirectory;
-		
-		p.getProjectDirectory().mkdirs();								
+
+		p.getProjectDirectory().mkdirs();
 		p.getWorkingDirectory().mkdirs();
 		p.getOutputDirectory().mkdirs();
-		
-		
+
+
 		p.bowtieDirectory = bowtieDirectory;
 		p.samtoolsDirectory = samtoolsDirectory;
 		p.paired = isPaired;
 		p.directional = isDirectional;
 		p.mate1regexp = mate1regexp;
 		//check the reference directory
-		logger.info("Looking for the reference(s) directory "+referenceDirectory.getAbsolutePath()+"...");			
-		if(referenceDirectory.exists()){
+		logger.info("Looking for the reference(s) directory " + referenceDirectory.getAbsolutePath() + "...");
+		if (referenceDirectory.exists()) {
 			p.referenceDirectory = referenceDirectory;
-		}
-		else{
-			String error = "unable to find "+referenceDirectory.getAbsolutePath();
+		} else {
+			String error = "unable to find " + referenceDirectory.getAbsolutePath();
 			logger.severe(error);
 			throw new IllegalArgumentException(error);
-		}		
-		
-		
+		}
+
+
 		//check reads directory
-		logger.info("Looking for the read(s) directory "+readsDirectory.getAbsolutePath()+"...");		
-		if(readsDirectory.exists()){
+		logger.info("Looking for the read(s) directory " + readsDirectory.getAbsolutePath() + "...");
+		if (readsDirectory.exists()) {
 			p.readsDirectory = readsDirectory;
 			p.samples = Sample.buildSamples(p, p.paired, p.directional, p.mate1regexp);
-			logger.info("Num of samples: "+p.samples.size());
-		}
-		else{
-			String error = "unable to find "+readsDirectory.getAbsolutePath();
+			logger.info("Num of samples: " + p.samples.size());
+		} else {
+			String error = "unable to find " + readsDirectory.getAbsolutePath();
 			logger.severe(error);
 			throw new IllegalArgumentException(error);
-		}		
+		}
 		p.saveProject();
 		logger.info("Project creation OK");
 		return p;
 	}
-	
-	public static Project readFromDirectory(File projectDirectory){
-		if (projectDirectory.exists() && projectDirectory.isDirectory()){
+
+	public static Project readFromDirectory(File projectDirectory) {
+		if (projectDirectory.exists() && projectDirectory.isDirectory()) {
 			Project p = new Project();
-			String[] lines= Tools.readFile(projectDirectory+File.separator+"config.txt").split("[\n]");
-			for(String line : lines){
-				if (line.startsWith("#")) continue;				
+			String[] lines = Tools.readFile(projectDirectory + File.separator + "config.txt").split("[\n]");
+			for (String line : lines) {
+				if (line.startsWith("#")) continue;
 				String[] tokens = line.split("[:]");
-				if (tokens.length<2) continue; //not key:value line, ignore
-				
+				if (tokens.length < 2) continue; //not key:value line, ignore
+
 				String key = tokens[0];
 				String value = tokens[1];
-				if(key.equals("project_directory"))
-					p.projectDirectory=new File(value);
-				else if(key.equals("reference_directory"))
-					p.referenceDirectory=new File(value);
-				else if(key.equals("reads_directory")){
-					p.readsDirectory=new File(value);
-					
-				}
-				else if(key.equals("bowtie_directory"))
-					p.bowtieDirectory=new File(value);
-				else if(key.equals("samtools_directory"))
-					p.samtoolsDirectory=new File(value);
-				else if (key.equals("paired")){
+				if (key.equals("project_directory"))
+					p.projectDirectory = new File(value);
+				else if (key.equals("reference_directory"))
+					p.referenceDirectory = new File(value);
+				else if (key.equals("reads_directory")) {
+					p.readsDirectory = new File(value);
+
+				} else if (key.equals("bowtie_directory"))
+					p.bowtieDirectory = new File(value);
+				else if (key.equals("samtools_directory"))
+					p.samtoolsDirectory = new File(value);
+				else if (key.equals("paired")) {
 					p.paired = Boolean.parseBoolean(value);
-				}
-				else if (key.equals("directional")){
+				} else if (key.equals("directional")) {
 					p.directional = Boolean.parseBoolean(value);
-				}
-				else if (key.equals("mate1regexp"))
+				} else if (key.equals("mate1regexp"))
 					p.mate1regexp = value;
 				else
 					p.addProperty(key, value);
 			}
 			p.samples.addAll(Sample.buildSamples(p, p.paired, p.directional, p.mate1regexp));
 			return p;
-		}else{
-			throw new RuntimeException("Path "+projectDirectory+" was not found or it is not a directory or it cannot be accessed");
+		} else {
+			throw new RuntimeException("Path " + projectDirectory + " was not found or it is not a directory or it cannot be accessed");
 		}
 	}
 }

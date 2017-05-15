@@ -23,48 +23,51 @@ package es.cnio.bioinfo.bicycle.gatk;
 
 import java.util.HashMap;
 
-public class DefaultContigBisulfiteError implements ContigBisulfiteError{
-	
+public class DefaultContigBisulfiteError implements ContigBisulfiteError {
 
-	public HashMap<Strand, HashMap<Context, DefaultBisulfiteError>> perStrandErrors = new HashMap<Strand, HashMap<Context, DefaultBisulfiteError>>();
-	
+
+	public HashMap<Strand, HashMap<Context, DefaultBisulfiteError>> perStrandErrors = new HashMap<Strand,
+			HashMap<Context, DefaultBisulfiteError>>();
+
 	public DefaultContigBisulfiteError() {
-		
-		for (Strand strand: Strand.values()){
+
+		for (Strand strand : Strand.values()) {
 			HashMap<Context, DefaultBisulfiteError> errorMap = new HashMap<Context, DefaultBisulfiteError>();
 			perStrandErrors.put(strand, errorMap);
-			for (Context context: Context.values()){
+			for (Context context : Context.values()) {
 				errorMap.put(context, new DefaultBisulfiteError(context, strand));
 			}
 		}
-	
+
 	}
-	
-	public void addError(Strand strand, Context context, int reads, int errorReads){
+
+	public void addError(Strand strand, Context context, int reads, int errorReads) {
 		HashMap<Context, DefaultBisulfiteError> errorMap = perStrandErrors.get(strand);
-		
+
 		errorMap.get(context).add(reads, errorReads);
-		
+
 	}
-	
-	public DefaultBisulfiteError getError(Strand strand, Context context){
+
+	public DefaultBisulfiteError getError(Strand strand, Context context) {
 		HashMap<Context, DefaultBisulfiteError> errorMap = perStrandErrors.get(strand);
 		return errorMap.get(context);
 	}
-	
-	public String toString(){
+
+	public String toString() {
 		StringBuffer toretb = new StringBuffer();
-		for (Strand strand: new Strand[]{Strand.WATSON, Strand.CRICK}){
-			toretb.append(strand+"={");
-			boolean first=true;
-			for (Context context: Context.values()){
-				if (!first){
+		for (Strand strand : new Strand[]{Strand.WATSON, Strand.CRICK}) {
+			toretb.append(strand + "={");
+			boolean first = true;
+			for (Context context : Context.values()) {
+				if (!first) {
 					toretb.append(", ");
-				}else first = false;
-				toretb.append(context+"="+this.perStrandErrors.get(strand).get(context).getError()+" ("+this.perStrandErrors.get(strand).get(context).getErrorReads()+"/"+this.perStrandErrors.get(strand).get(context).getTotalReads()+")");
+				} else first = false;
+				toretb.append(context + "=" + this.perStrandErrors.get(strand).get(context).getError() + " (" + this
+						.perStrandErrors.get(strand).get(context).getErrorReads() + "/" + this.perStrandErrors.get
+						(strand).get(context).getTotalReads() + ")");
 			}
 			toretb.append("}\n");
-			
+
 		}
 		return toretb.toString();
 	}

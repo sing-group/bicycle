@@ -1,6 +1,6 @@
 /*
 
-Copyright 2012 Daniel Gonzalez Pe��a, Osvaldo Gra��a
+Copyright 2012 Daniel Gonzalez Peña, Osvaldo Graña
 
 
 This file is part of the bicycle Project. 
@@ -46,30 +46,30 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 
 	@Override
 	public void executeImpl(CLIApplication app, Project project, Map<Option, String> parameters) throws Exception {
-		
-		
+
+
 		int nThreads = Integer.parseInt(parameters.get(this.findOption("n")));
 		boolean removeBad = parameters.containsKey(this.findOption("r"));
-		boolean removeAmbiguous = parameters.containsKey(this.findOption("a"));		
+		boolean removeAmbiguous = parameters.containsKey(this.findOption("a"));
 		boolean removeClonal = parameters.containsKey(this.findOption("c"));
 		boolean correctNonCG = parameters.containsKey(this.findOption("g"));
 		int trimuntil = Integer.parseInt(parameters.get(this.findOption("t")));
-		boolean trimreads = trimuntil!=-1;
+		boolean trimreads = trimuntil != -1;
 		int mindepth = Integer.parseInt(parameters.get(this.findOption("d")));
-		
+
 		double fdr = Double.parseDouble(parameters.get(this.findOption("f")));
-		
+
 		List<File> bedFiles = new LinkedList<File>();
-		
-		if (parameters.containsKey(this.findOption("b"))){
+
+		if (parameters.containsKey(this.findOption("b"))) {
 			String bedFilesString = parameters.get(this.findOption("b"));
-			if (bedFilesString!=null){
+			if (bedFilesString != null) {
 				String[] tokens = bedFilesString.split(",");
-				
-				for (String token: tokens){
+
+				for (String token : tokens) {
 					File bedFile = new File(token);
-					if (!bedFile.exists()){
-						throw new IllegalArgumentException("BED file not found: "+bedFile);
+					if (!bedFile.exists()) {
+						throw new IllegalArgumentException("BED file not found: " + bedFile);
 					}
 					bedFiles.add(bedFile);
 				}
@@ -78,86 +78,92 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 		String errorString = parameters.get(this.findOption("e"));
 		String[] errorTokens = errorString.split("[=]");
 		String errorModeString = errorTokens[0];
-		
+
 		ErrorRateMode errorMode = ErrorRateMode.valueOf(errorModeString); //may illegal argument exception
-		
-		
+
+
 		MethylationAnalysis ma = new MethylationAnalysis(project);
-		if (errorMode == ErrorRateMode.from_control_genome){
-			
-			if (errorTokens.length<2){
+		if (errorMode == ErrorRateMode.from_control_genome) {
+
+			if (errorTokens.length < 2) {
 				throw new IllegalArgumentException("control genome must be set");
 			}
-			
+
 			String controlGenome = errorTokens[1];
-			
-			for (Sample sample: project.getSamples()){
-				for (Reference reference: project.getReferences()){					
-					ma.analyzeWithErrorFromControlGenome(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, controlGenome);
+
+			for (Sample sample : project.getSamples()) {
+				for (Reference reference : project.getReferences()) {
+					ma.analyzeWithErrorFromControlGenome(reference, sample, trimreads, trimuntil, removeAmbiguous,
+							removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, controlGenome);
 				}
 			}
-			
-		}else if(errorMode == ErrorRateMode.FIXED){
-			if (errorTokens.length<2){
+
+		} else if (errorMode == ErrorRateMode.FIXED) {
+			if (errorTokens.length < 2) {
 				throw new IllegalArgumentException("error rates must be set");
 			}
 			String[] errorRates = errorTokens[1].split(",");
-			if (errorRates.length!=2){
-				throw new IllegalArgumentException("bad error rates. It must be <watson_rate>,<crick_rate>. E.g.: 0.01,0.02");
+			if (errorRates.length != 2) {
+				throw new IllegalArgumentException("bad error rates. It must be <watson_rate>,<crick_rate>. E.g.: " +
+						"0.01,0.02");
 			}
-			
+
 			double watsonError = Double.parseDouble(errorRates[0]);
 			double crickError = Double.parseDouble(errorRates[1]);
 
-			for (Sample sample: project.getSamples()){
-				for (Reference reference: project.getReferences()){					
-					ma.analyzeWithFixedErrorRate(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, watsonError, crickError);
+			for (Sample sample : project.getSamples()) {
+				for (Reference reference : project.getReferences()) {
+					ma.analyzeWithFixedErrorRate(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad,
+							removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, watsonError, crickError);
 				}
 			}
-		}else if (errorMode == ErrorRateMode.from_barcodes){
-			for (Sample sample: project.getSamples()){
-				for (Reference reference: project.getReferences()){					
-					ma.analyzeWithErrorFromBarcodes(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles);
+		} else if (errorMode == ErrorRateMode.from_barcodes) {
+			for (Sample sample : project.getSamples()) {
+				for (Reference reference : project.getReferences()) {
+					ma.analyzeWithErrorFromBarcodes(reference, sample, trimreads, trimuntil, removeAmbiguous,
+							removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles);
 				}
 			}
-			
+
 		}
 	}
 
 	@Override
 	protected List<Option> createOptions() {
 		List<Option> toret = super.createOptions();
-		
-		toret.add(new DefaultValuedOption("threads", "n", 
-				"number of threads to analyze",  "4"));
-		
-		toret.add(new Option("remove-uncorrectly-converted", "r", 
+
+		toret.add(new DefaultValuedOption("threads", "n",
+				"number of threads to analyze", "4"));
+
+		toret.add(new Option("remove-uncorrectly-converted", "r",
 				"ignore non-correctly bisulfite-converted reads", true, false));
-		
-		toret.add(new Option("remove-ambiguous", "a", 
+
+		toret.add(new Option("remove-ambiguous", "a",
 				"ignore reads aligned to both Watson and Crick strands", true, false));
-		
-		toret.add(new DefaultValuedOption("trim-reads", "t", 
-				"Trim reads to the <t> mismatch. -1 means no trim",  "4"));
-		
-		toret.add(new DefaultValuedOption("min-depth", "d", 
-				"Ignore positions with less than <d> reads",  "1"));
-		
-		toret.add(new DefaultValuedOption("fdr", "f", 
+
+		toret.add(new DefaultValuedOption("trim-reads", "t",
+				"Trim reads to the <t> mismatch. -1 means no trim", "4"));
+
+		toret.add(new DefaultValuedOption("min-depth", "d",
+				"Ignore positions with less than <d> reads", "1"));
+
+		toret.add(new DefaultValuedOption("fdr", "f",
 				"FDR threshold", "0.01"));
-		
-		toret.add(new DefaultValuedOption("error-mode", "e", 
-				"Error rate computation mode. Valid options are: "+ErrorRateMode.from_control_genome+"=<control_genome_name>, "+ErrorRateMode.from_barcodes+", "+ErrorRateMode.FIXED.name()+"=<watson_error_rate,crick_error_rate>", ErrorRateMode.FIXED.name()+"=0.01,0.01"));
-		
-		toret.add(new Option("annotate-beds", "b", 
+
+		toret.add(new DefaultValuedOption("error-mode", "e",
+				"Error rate computation mode. Valid options are: " + ErrorRateMode.from_control_genome +
+						"=<control_genome_name>, " + ErrorRateMode.from_barcodes + ", " + ErrorRateMode.FIXED.name() +
+						"=<watson_error_rate,crick_error_rate>", ErrorRateMode.FIXED.name() + "=0.01,0.01"));
+
+		toret.add(new Option("annotate-beds", "b",
 				"Comma-separated (with no spaces) list of BED files to annotate cytosines", true, true));
-		
-		toret.add(new Option("remove-clonal", "c", 
+
+		toret.add(new Option("remove-clonal", "c",
 				"Remove clonal reads", true, false));
-		
-		toret.add(new Option("correct non-CG to CG", "g", 
+
+		toret.add(new Option("correct non-CG to CG", "g",
 				"Correct non-CG", true, false));
-		
+
 		return toret;
 	}
 

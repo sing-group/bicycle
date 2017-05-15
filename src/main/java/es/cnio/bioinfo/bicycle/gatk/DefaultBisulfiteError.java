@@ -21,41 +21,43 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 
 package es.cnio.bioinfo.bicycle.gatk;
 
-public class DefaultBisulfiteError implements BisulfiteError{
+public class DefaultBisulfiteError implements BisulfiteError {
 
-	
-	public int totalReads=0;
-	public int errorReads=0;
-	
+
+	public int totalReads = 0;
+	public int errorReads = 0;
+
 	public Context context;
 	public Strand strand;
-	
+
 	public DefaultBisulfiteError(Context context, Strand strand) {
 		super();
 		this.context = context;
 		this.strand = strand;
 	}
 
-	public void add(int totalReads, int errorReads){
-		if (errorReads > totalReads || totalReads<0 || errorReads <0){
-			throw new IllegalArgumentException("total reads cannot be greater than errorReads and both must be positive");
+	public void add(int totalReads, int errorReads) {
+		if (errorReads > totalReads || totalReads < 0 || errorReads < 0) {
+			throw new IllegalArgumentException("total reads cannot be greater than errorReads and both must be " +
+					"positive");
 		}
 		this.totalReads += totalReads;
 		this.errorReads += errorReads;
 	}
-	
+
 	@Override
-	public double getError(){
-		if (totalReads == 0){
+	public double getError() {
+		if (totalReads == 0) {
 			return 0d;
 		}
-		return (double)errorReads/(double)totalReads;
+		return (double) errorReads / (double) totalReads;
 	}
-	
-	
+
+
 	public int getTotalReads() {
 		return totalReads;
 	}
+
 	public int getErrorReads() {
 		return errorReads;
 	}
@@ -67,6 +69,6 @@ public class DefaultBisulfiteError implements BisulfiteError{
 	public Strand getStrand() {
 		return strand;
 	}
-	
-	
+
+
 }

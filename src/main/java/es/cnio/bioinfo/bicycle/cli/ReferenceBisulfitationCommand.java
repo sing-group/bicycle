@@ -21,7 +21,6 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 
 package es.cnio.bioinfo.bicycle.cli;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -44,11 +43,11 @@ public class ReferenceBisulfitationCommand extends ProjectCommand {
 
 	@Override
 	public void executeImpl(CLIApplication app, Project project, Map<Option, String> parameters) throws Exception {
-		
-		
+
+
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(project);
 		boolean onWorking = parameters.containsKey(this.findOption("w"));
-		for (Reference ref: project.getReferences()){
+		for (Reference ref : project.getReferences()) {
 			rb.computeReferenceBisulfitation(Replacement.CT, ref, onWorking);
 			rb.computeReferenceBisulfitation(Replacement.GA, ref, onWorking);
 		}
@@ -56,9 +55,11 @@ public class ReferenceBisulfitationCommand extends ProjectCommand {
 
 	@Override
 	protected List<Option> createOptions() {
-		List<Option> toret = super.createOptions();		
-		toret.add(new Option("on-working-dir", "w", 
-				"generate output files on working dir (by default, bisulfited reference will be placed together with reference files)", true, false));
+		List<Option> toret = super.createOptions();
+		toret.add(new Option("on-working-dir", "w",
+				"generate output files on working dir (by default, bisulfited reference will be placed together with" +
+						" " +
+						"reference files)", true, false));
 		return toret;
 	}
 

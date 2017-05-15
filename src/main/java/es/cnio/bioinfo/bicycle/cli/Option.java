@@ -30,10 +30,10 @@ public class Option {
 	private boolean requiresValue;
 
 	public Option(
-			String paramName, 
-			String shortName, 
+			String paramName,
+			String shortName,
 			String description,
-			boolean optional, 
+			boolean optional,
 			boolean requiresValue) {
 		super();
 		this.paramName = paramName;
@@ -62,7 +62,4 @@ public class Option {
 	public boolean requiresValue() {
 		return requiresValue;
 	}
-	
-	
-
 }

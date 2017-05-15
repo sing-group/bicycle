@@ -1,6 +1,6 @@
 /*
 
-Copyright 2012 Daniel Gonzalez Pe��a, Osvaldo Gra��a
+Copyright 2012 Daniel Gonzalez Peña, Osvaldo Graña
 
 
 This file is part of the bicycle Project. 
@@ -49,50 +49,52 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 
 	@Override
 	public void executeImpl(CLIApplication app, Project project, Map<Option, String> parameters) throws Exception {
-		
+
 		List<Sample> treatmentSamples = new LinkedList<>();
-		if (parameters.containsKey(this.findOption("t"))){
+		if (parameters.containsKey(this.findOption("t"))) {
 			final String treatmentSamplesString = parameters.get(this.findOption("t"));
-			treatmentSamples= parseSamples(project, treatmentSamplesString);
+			treatmentSamples = parseSamples(project, treatmentSamplesString);
 		} else {
 			String validSampleNames = getValidSampleNames(project);
-			throw new IllegalArgumentException("treatment samples are mandatory. Valid sample names are: "+validSampleNames);
+			throw new IllegalArgumentException("treatment samples are mandatory. Valid sample names are: " +
+					validSampleNames);
 		}
-		
+
 		List<Sample> controlSamples = new LinkedList<>();
-		if (parameters.containsKey(this.findOption("c"))){
+		if (parameters.containsKey(this.findOption("c"))) {
 			final String controlSamplesString = parameters.get(this.findOption("c"));
-			controlSamples= parseSamples(project, controlSamplesString);
+			controlSamples = parseSamples(project, controlSamplesString);
 		} else {
 			String validSampleNames = getValidSampleNames(project);
-			throw new IllegalArgumentException("control samples are mandatory. Valid sample names are: "+validSampleNames);
+			throw new IllegalArgumentException("control samples are mandatory. Valid sample names are: " +
+					validSampleNames);
 		}
-		
-		
+
+
 		List<File> bedFiles = new LinkedList<File>();
-		if (parameters.containsKey(this.findOption("b"))){
+		if (parameters.containsKey(this.findOption("b"))) {
 			String bedFilesString = parameters.get(this.findOption("b"));
-			if (bedFilesString!=null){
+			if (bedFilesString != null) {
 				String[] tokens = bedFilesString.split(",");
-				
-				for (String token: tokens){
+
+				for (String token : tokens) {
 					File bedFile = new File(token);
-					if (!bedFile.exists()){
-						throw new IllegalArgumentException("BED file not found: "+bedFile);
+					if (!bedFile.exists()) {
+						throw new IllegalArgumentException("BED file not found: " + bedFile);
 					}
 					bedFiles.add(bedFile);
 				}
 			}
-		} 
+		}
 
 		Set<Context> contexts = parseContextParameter(parameters.get(this.findOption("x")));
 
-		DifferentialMethylationAnalysis dma = 
+		DifferentialMethylationAnalysis dma =
 				new DifferentialMethylationAnalysis(new MethylationAnalysis(project), contexts);
-		for (Reference reference: project.getReferences()) {
+		for (Reference reference : project.getReferences()) {
 			dma.analyzeDifferentialMethylationByBase(reference, treatmentSamples, controlSamples);
 			//by region
-			for (File bedFile: bedFiles) {
+			for (File bedFile : bedFiles) {
 				dma.analyzeDifferentialMethylationByRegions(reference, treatmentSamples, controlSamples, bedFile);
 			}
 		}
@@ -102,10 +104,10 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 		String[] tokens = contextsString.split(",");
 		Set<Context> toret = new HashSet<>();
 
-		for(String token: tokens) {
+		for (String token : tokens) {
 			try {
 				toret.add(Context.valueOf(token));
-			} catch(IllegalArgumentException e) {
+			} catch (IllegalArgumentException e) {
 				throw new IllegalArgumentException("Invalid context parameter, must be a comma-separated list of " +
 						"contexts (CG, CHG, CHH)");
 			}
@@ -117,10 +119,10 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 		List<Sample> samplesList = new LinkedList<>();
 		if (treatmentSamplesString != null) {
 			String[] tokens = treatmentSamplesString.split(",");
-			
-			for (String token: tokens) {
+
+			for (String token : tokens) {
 				boolean found = false;
-				for (Sample s: project.getSamples()) {
+				for (Sample s : project.getSamples()) {
 					if (s.getName().equals(token)) {
 						samplesList.add(s);
 						found = true;
@@ -128,9 +130,10 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 				}
 				if (!found) {
 					String validSampleNames = getValidSampleNames(project);
-					throw new IllegalArgumentException("sample "+token+" not found. Valid sample names are: "+validSampleNames);
+					throw new IllegalArgumentException("sample " + token + " not found. Valid sample names are: " +
+							validSampleNames);
 				}
-				
+
 			}
 		} else {
 			throw new IllegalArgumentException("You must give a value for samples parameter");
@@ -140,8 +143,8 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 
 	private String getValidSampleNames(Project project) {
 		StringBuilder sb = new StringBuilder();
-		for (Sample s: project.getSamples()) {
-			sb.append(s.getName()+" ");
+		for (Sample s : project.getSamples()) {
+			sb.append(s.getName() + " ");
 		}
 		String validSampleNames = sb.toString().trim();
 		return validSampleNames;
@@ -150,21 +153,21 @@ public class DifferentialMethylationAnalysisCommand extends ProjectCommand {
 	@Override
 	protected List<Option> createOptions() {
 		List<Option> toret = super.createOptions();
-		
-		toret.add(new Option("treatment-samples", "t", 
+
+		toret.add(new Option("treatment-samples", "t",
 				"Comma-separated (with no spaces) list of sample names belonging to 'treatment' group", false, true));
-		
-		toret.add(new Option("control-samples", "c", 
+
+		toret.add(new Option("control-samples", "c",
 				"Comma-separated (with no spaces) list of sample names belonging to 'control' group", false, true));
 
 		toret.add(new DefaultValuedOption("context", "x",
 				"Comma-separated (with no spaces) list of CpG contexts to analyze: CG, CHG or CHH. For example: CG," +
-						"CHG",	"CG"));
+						"CHG", "CG"));
 
 		toret.add(new Option("region-beds", "b",
 				"Comma-separated (with no spaces) list of BED files to analyze at region-level", true, true));
-		
-		
+
+
 		return toret;
 	}
 

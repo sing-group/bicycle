@@ -22,5 +22,5 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 package es.cnio.bioinfo.bicycle.gatk;
 
 public enum Context {
-	CG,CHG,CHH;
+	CG, CHG, CHH;
 }

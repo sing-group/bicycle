@@ -38,87 +38,100 @@ public class BarcodeErrorComputation {
 	public BarcodeErrorComputation(Sample sample) {
 		this.sample = sample;
 	}
-	public double computeErrorFromBarcodes() throws IOException{
-		int correctBarcodeConversion=0;
-		int failedBarcodeConversion=0;
-		double errorInSample=-1d; // inicializo a -1 (flag para indicar que NO ha podido calcularse el error)			
 
-		if (getErrorFile().exists()){
+	public double computeErrorFromBarcodes() throws IOException {
+		int correctBarcodeConversion = 0;
+		int failedBarcodeConversion = 0;
+		double errorInSample = -1d; // inicializo a -1 (flag para indicar que NO ha podido calcularse el error)
+
+		if (getErrorFile().exists()) {
 			errorInSample = this.readErrorRate();
-		}
-		else{
-			for (File inputFile : this.sample.getReadsFiles()){
-		
+		} else {
+			for (File inputFile : this.sample.getReadsFiles()) {
+
 				BufferedReader br = new BufferedReader(new FileReader(inputFile));
 				String line = null;
-				while ((line = br.readLine()) != null){
-			         if(line.startsWith("@")){					        	 
-			        	// obtengo el barcode del nombre del archivo, ejemplo: ES_LIF_s_8_TGtATT-sequence.txt
-		 	 			String barcode=new String((inputFile.getName().split("-"))[0]);
-		 	 			String aux[]=barcode.split("_");
-		 	 			barcode=aux[aux.length-1];
-			 			// localizo la posicion de la 't' en el barcode, posicion que vendria de una c no metilada
-			 			int barcodePosition=barcode.indexOf("t");
-			 			String thisReadBarcode=(line.split("[#]"))[1];
-			 			
-			 			//System.out.println(barcode[i]+"--------------"+thisReadBarcode+"----------------------"+thisLine);
-			 			
-			 			
-			 			// AL LORO CON EL CALCULO DE ERROR RATES:
-			 			// error Rate=n. errores/(n. errores+n. aciertos)						        	 			
-			 			// Se cuenta como error de bisulfito la presencia de 'C/c' en la posicion a mirar en el barcode.						        	 			
-			 			// Se cuenta como error de secuenciación la presencia de 'A' o 'G' en la posicion a mirar del barcode.
-			 			// Se cuenta como read correctamente convertida cuando hay una 'T/t' en la posicion a mirar del barcode.
-			 			// SEGUN ESTO: el n. de errores=n. reads con error en bisulfito+n. reads con error en secuenciación
-			 			// *** de esta manera lo calculó lister, ver supplementary info página 23
-			 			// *** en los datos que le di a Orlando de error de bisulfito (obtenidos con el script de Perl) hay ligeras
-			 			// diferencias porque consideré como error sólo la presencia de 'C' en la posición a mirar del barcode, con lo que
-			 			// si un barcode estaba mal secuenciado en esa posición (A ó G) se contó como acierto (como si tuviese T) y 
-			 			// eso no es correcto						        	 			
-			 			if(thisReadBarcode.charAt(barcodePosition)=='t' || thisReadBarcode.charAt(barcodePosition)=='T') correctBarcodeConversion++;
-			 			else{
-			 				failedBarcodeConversion++;
-			 				
-			 			}
-			         }//if(thisLine.startsWith("@"))		
+				while ((line = br.readLine()) != null) {
+					if (line.startsWith("@")) {
+						// obtengo el barcode del nombre del archivo, ejemplo: ES_LIF_s_8_TGtATT-sequence.txt
+						String barcode = new String((inputFile.getName().split("-"))[0]);
+						String aux[] = barcode.split("_");
+						barcode = aux[aux.length - 1];
+						// localizo la posicion de la 't' en el barcode, posicion que vendria de una c no metilada
+						int barcodePosition = barcode.indexOf("t");
+						String thisReadBarcode = (line.split("[#]"))[1];
+
+						//System.out.println(barcode[i]+"--------------"+thisReadBarcode
+						// +"----------------------"+thisLine);
+
+
+						// AL LORO CON EL CALCULO DE ERROR RATES:
+						// error Rate=n. errores/(n. errores+n. aciertos)
+						// Se cuenta como error de bisulfito la presencia de 'C/c' en la posicion a mirar en el
+						// barcode.
+						// Se cuenta como error de secuenciación la presencia de 'A' o 'G' en la posicion a mirar del
+						// barcode.
+						// Se cuenta como read correctamente convertida cuando hay una 'T/t' en la posicion a mirar
+						// del barcode.
+						// SEGUN ESTO: el n. de errores=n. reads con error en bisulfito+n. reads con error en
+						// secuenciación
+						// *** de esta manera lo calculó lister, ver supplementary info página 23
+						// *** en los datos que le di a Orlando de error de bisulfito (obtenidos con el script de
+						// Perl) hay ligeras
+						// diferencias porque consideré como error sólo la presencia de 'C' en la posición a mirar del
+						// barcode, con lo que
+						// si un barcode estaba mal secuenciado en esa posición (A ó G) se contó como acierto (como si
+						// tuviese T) y
+						// eso no es correcto
+						if (thisReadBarcode.charAt(barcodePosition) == 't' || thisReadBarcode.charAt(barcodePosition)
+								== 'T')
+							correctBarcodeConversion++;
+						else {
+							failedBarcodeConversion++;
+
+						}
+					}//if(thisLine.startsWith("@"))
 				} // end while	
-				
-				br.close();		
+
+				br.close();
 			}
-			errorInSample=((double)failedBarcodeConversion)/((double)(correctBarcodeConversion+failedBarcodeConversion));
+			errorInSample = ((double) failedBarcodeConversion) / ((double) (correctBarcodeConversion +
+					failedBarcodeConversion));
 		}
 		this.writeErrorRate(errorInSample);
-		logger.info("Error rate calculated in bisulfite conversion for "+getErrorFile()+" = "+errorInSample+"]");
-		
+		logger.info("Error rate calculated in bisulfite conversion for " + getErrorFile() + " = " + errorInSample +
+				"]");
+
 		return errorInSample;
 	}
-	
-	
-	
-	
-	private double readErrorRate() throws IOException{
-		final File errorFile = new File(this.sample.getProject().getOutputDirectory()+File.separator+this.sample.getName()+".errorRate");
-	
+
+
+	private double readErrorRate() throws IOException {
+		final File errorFile = new File(this.sample.getProject().getOutputDirectory() + File.separator + this.sample
+				.getName() + ".errorRate");
+
 		BufferedReader reader = new BufferedReader(new FileReader(errorFile));
 		String line = null;
-		if ((line=reader.readLine())!=null){
-			if (line.split("=").length==2)
+		if ((line = reader.readLine()) != null) {
+			if (line.split("=").length == 2)
 				return Double.parseDouble(line.split("=")[1].trim());
 		}
-		throw new IllegalArgumentException("File "+errorFile+" does not contain a valid error rate");
-		
+		throw new IllegalArgumentException("File " + errorFile + " does not contain a valid error rate");
+
 	}
-	private void writeErrorRate(double errorRate) throws IOException{
+
+	private void writeErrorRate(double errorRate) throws IOException {
 		final File errorFile = getErrorFile();
-		
+
 		BufferedWriter errorFileWriter = new BufferedWriter(new FileWriter(errorFile));
-		errorFileWriter.write("Error rate = "+ errorRate);
+		errorFileWriter.write("Error rate = " + errorRate);
 		errorFileWriter.flush();
 		errorFileWriter.close();
 	}
-	
-	private File getErrorFile(){
-		return new File(this.sample.getProject().getOutputDirectory()+File.separator+this.sample.getName()+".errorRate");
-		
+
+	private File getErrorFile() {
+		return new File(this.sample.getProject().getOutputDirectory() + File.separator + this.sample.getName() + "" +
+				".errorRate");
+
 	}
 }

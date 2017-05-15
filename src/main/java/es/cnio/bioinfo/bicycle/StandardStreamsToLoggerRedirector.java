@@ -24,24 +24,26 @@ public class StandardStreamsToLoggerRedirector {
 		originalStdOut = System.out;
 		originalStdErr = System.err;
 	}
-	public interface MessageFilter
-	{
+
+	public interface MessageFilter {
 		public abstract String filter(String msg);
 	}
-	
+
 	public StandardStreamsToLoggerRedirector(Logger logger, Level level, MessageFilter filter) {
 		this.logger = logger;
 		this.level = level;
 		this.messageFilter = filter;
-		this.errToLoggerPrintStream = new ToLoggerPrintStream(this.logger, this.level, this.messageFilter, originalStdErr);
-		this.outToLoggerPrintStream = new ToLoggerPrintStream(this.logger, this.level, this.messageFilter, originalStdOut);
+		this.errToLoggerPrintStream = new ToLoggerPrintStream(this.logger, this.level, this.messageFilter,
+				originalStdErr);
+		this.outToLoggerPrintStream = new ToLoggerPrintStream(this.logger, this.level, this.messageFilter,
+				originalStdOut);
 	}
-	
+
 	public void redirectStreams() {
 		System.setErr(errToLoggerPrintStream);
 		System.setOut(outToLoggerPrintStream);
 	}
-	
+
 	public void restoreStreams() {
 		this.errToLoggerPrintStream.flush();
 		this.outToLoggerPrintStream.flush();
@@ -56,7 +58,7 @@ public class StandardStreamsToLoggerRedirector {
 
 		public ToLoggerPrintStream(Logger logger, Level level, MessageFilter filter, PrintStream originalStream) {
 
-			super( new OutputStream() {
+			super(new OutputStream() {
 
 				public boolean logging = false;
 				private ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -125,7 +127,7 @@ public class StandardStreamsToLoggerRedirector {
 						//System.out.println(text.length()+ " "+end);
 
 						newBaos.write(this.baos.toByteArray(), end + 1, this.baos.toByteArray().length -
-								(end+1));
+								(end + 1));
 					}
 					this.baos = newBaos;
 				}

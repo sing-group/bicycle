@@ -25,160 +25,166 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import net.sf.samtools.SAMRecord;
-
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElementFilter;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
+import net.sf.samtools.SAMRecord;
+
 public class ListerFilter extends ReadFilter {
-	
-	@Argument(doc="control genome for error computation", required=false)
-	public int trimUntil=4;
-	
-	public static boolean trim=false;
-	
-	@Argument(doc="remove bad bisulfited", required=false)
-	public boolean removeBad=false;
-	
-	@Argument(doc="remove ambigous read using tagged reads with ZA flag", required=false)
-	public boolean removeAmbiguous=false;
-	
-	public static char TRIMMED_BASE='X';
-	
+
+	@Argument(doc = "control genome for error computation", required = false)
+	public int trimUntil = 4;
+
+	public static boolean trim = false;
+
+	@Argument(doc = "remove bad bisulfited", required = false)
+	public boolean removeBad = false;
+
+	@Argument(doc = "remove ambigous read using tagged reads with ZA flag", required = false)
+	public boolean removeAmbiguous = false;
+
+	public static char TRIMMED_BASE = 'X';
+
 	public Pattern watson = Pattern.compile(".*[Cc][^Gg].*[Cc][^Gg].*[Cc][^Gg].*[Cc][^Gg].*");
 	public Pattern crick = Pattern.compile(".*[^Cc][Gg].*[^Cc][Gg].*[^Cc][Gg].*[^Cc][Gg].*");
 
 	private GenomeAnalysisEngine engine;
-	
-	@Argument(doc="ignore bases with less depth of coverage")
-	public static int mindepth=1;
-	
-	
+
+	@Argument(doc = "ignore bases with less depth of coverage")
+	public static int mindepth = 1;
+
+
 	@Override
 	public void initialize(GenomeAnalysisEngine engine) {
 		this.engine = engine;
 	}
+
 	@Override
 	public boolean filterOut(SAMRecord record) {
 		//remove reads with two or more alignments
-		if (record.getAttribute("XM")!=null && !record.getAttribute("XM").toString().equals("1")){
+		if (record.getAttribute("XM") != null && !record.getAttribute("XM").toString().equals("1")) {
 			//System.err.println("filtering record with two possible alignments");
 			return true;
 		}
-		
+
 		//remove ambiguous
-		if (removeAmbiguous){
-			//if (record.getAttribute("ZA")!=null)System.out.println("attribute: "+record.getAttribute("ZA").toString());
-			if (record.getAttribute("ZA")!=null && record.getAttribute("ZA").toString().equals("Y")){
+		if (removeAmbiguous) {
+			//if (record.getAttribute("ZA")!=null)System.out.println("attribute: "+record.getAttribute("ZA").toString
+			// ());
+			if (record.getAttribute("ZA") != null && record.getAttribute("ZA").toString().equals("Y")) {
 				return true;
 			}
 		}
-		
+
 		//trim to x mismatch (trim must be before bad bisulfited)
-		if (trim){
-			trim(record, trimUntil);		
+		if (trim) {
+			trim(record, trimUntil);
 		}
 		//bad bisulfited filter
-		if (removeBad){
-			if(!record.getReadNegativeStrandFlag() && watson.matcher(record.getReadString()).find()
-				||
-			    record.getReadNegativeStrandFlag() && crick.matcher(record.getReadString()).find()){
-				return true;	
+		if (removeBad) {
+			if (!record.getReadNegativeStrandFlag() && watson.matcher(record.getReadString()).find()
+					||
+					record.getReadNegativeStrandFlag() && crick.matcher(record.getReadString()).find()) {
+				return true;
 			}
 		}
 		return false;
 	}
-	
-	
-	public static ReadBackedPileup applyFilters(ReadBackedPileup pileup){
-		if (pileup==null){
+
+
+	public static ReadBackedPileup applyFilters(ReadBackedPileup pileup) {
+		if (pileup == null) {
 			return null;
 		}
-		ReadBackedPileup toret = pileup.getFilteredPileup(new PileupElementFilter(){
+		ReadBackedPileup toret = pileup.getFilteredPileup(new PileupElementFilter() {
 
 			@Override
 			public boolean allow(PileupElement arg0) {
-				for (PileupElementFilter filter : pileupfilters){
-					if (!filter.allow(arg0)){
+				for (PileupElementFilter filter : pileupfilters) {
+					if (!filter.allow(arg0)) {
 						return false;
 					}
 				}
 				return true;
 			}
-			
+
 		});
-		
-		if (toret.getBases().length<mindepth){
+
+		if (toret.getBases().length < mindepth) {
 			return null;
 		}
 		return toret;
-		
-	}
-	
-	static List<PileupElementFilter> pileupfilters;
-	static{
-		
-		pileupfilters= new LinkedList<PileupElementFilter>();
-			pileupfilters.add(new PileupElementFilter(){
 
-				@Override
-				public boolean allow(PileupElement arg0) {
-				
-					if (trim){
-						
-						if (arg0.getBase()==ListerFilter.TRIMMED_BASE){
-							return false;
-						}
-					}
-					return true;
-				}
-				
-			});
-		
 	}
-	
+
+	static List<PileupElementFilter> pileupfilters;
+
+	static {
+
+		pileupfilters = new LinkedList<PileupElementFilter>();
+		pileupfilters.add(new PileupElementFilter() {
+
+			@Override
+			public boolean allow(PileupElement arg0) {
+
+				if (trim) {
+
+					if (arg0.getBase() == ListerFilter.TRIMMED_BASE) {
+						return false;
+					}
+				}
+				return true;
+			}
+
+		});
+
+	}
+
 	private void trim(SAMRecord record, int trimMismatches) {
 		record.setAttribute("XT", "true");
 		String sequenceCT = record.getReadString();
-		
+
 		int mismatches = (Integer) record.getAttribute("NM");
-		if (mismatches>=trimMismatches){
+		if (mismatches >= trimMismatches) {
 			String MDString = (String) record.getAttribute("MD");
 			String[] MDStringTokens = MDString.split("[ACTGN]");
-		
-			if(record.getReadNegativeStrandFlag()){
+
+			if (record.getReadNegativeStrandFlag()) {
 				//is in the reverse
 				int newStart = sequenceCT.length();
-				for (int m = MDStringTokens.length-1; m>=MDStringTokens.length-trimMismatches; m--){
-					newStart-=Integer.parseInt(MDStringTokens[m])+1;
+				for (int m = MDStringTokens.length - 1; m >= MDStringTokens.length - trimMismatches; m--) {
+					newStart -= Integer.parseInt(MDStringTokens[m]) + 1;
 				}
 				newStart++;
-				sequenceCT = sequenceCT.substring(newStart);				
-				
-				
-				record.setReadString(record.getReadString().substring(0,newStart).replaceAll(".", ""+TRIMMED_BASE)+record.getReadString().substring(newStart));
-    	 	}else{
-    	 		int newLength=0;
-				
-				for (int m = 0; m<trimMismatches; m++){
-					newLength+=Integer.parseInt(MDStringTokens[m])+1;
+				sequenceCT = sequenceCT.substring(newStart);
+
+
+				record.setReadString(record.getReadString().substring(0, newStart).replaceAll(".", "" + TRIMMED_BASE)
+						+ record.getReadString().substring(newStart));
+			} else {
+				int newLength = 0;
+
+				for (int m = 0; m < trimMismatches; m++) {
+					newLength += Integer.parseInt(MDStringTokens[m]) + 1;
 				}
 				newLength--; //ignore the lastmismatch				
-				sequenceCT = sequenceCT.substring(0,newLength);				
-				
-				record.setReadString(record.getReadString().substring(0,newLength)+record.getReadString().substring(newLength).replaceAll(".", ""+TRIMMED_BASE));
-    	 	}		
+				sequenceCT = sequenceCT.substring(0, newLength);
+
+				record.setReadString(record.getReadString().substring(0, newLength) + record.getReadString().substring
+						(newLength).replaceAll(".", "" + TRIMMED_BASE));
+			}
 		}
-		
+
 	}
+
 	@Override
 	public String toString() {
-		return "remove ambiguous reads: "+this.removeAmbiguous+", remove non-correctly bisulfite-converted reads: "+this.removeBad+", trim to 'x' mismatch: "+this.trim+((this.trim)?" x="+this.trimUntil:"");
+		return "remove ambiguous reads: " + this.removeAmbiguous + ", remove non-correctly bisulfite-converted reads: " +
+				"" + this.removeBad + ", trim to 'x' mismatch: " + this.trim + ((this.trim) ? " x=" + this.trimUntil : "");
 	}
 
 }

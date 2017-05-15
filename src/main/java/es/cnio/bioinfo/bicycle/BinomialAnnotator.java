@@ -31,26 +31,25 @@ import org.apache.commons.math.distribution.BinomialDistributionImpl;
 
 public class BinomialAnnotator {
 
-	 public static void main(String[] args) throws IOException, MathException{
-		 BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-		 
-		 double p = Double.parseDouble(args[0]);
-		 String line = null;
-		 
-		 
-			
-		 while ((line = in.readLine())!=null){
-		
-				 String[] tokens = line.split("\t");
-				 int reads = Integer.parseInt(tokens[5]);
-				 int cCount = Integer.parseInt(tokens[4]);
-				 BinomialDistribution binomial = new BinomialDistributionImpl(reads, p);
-				 double pval = (reads==0)? 1.0d: (1.0d-binomial.cumulativeProbability(cCount-1));
-				 if(System.out.checkError()){
-					 System.exit(1);
-				 }
-				 System.out.println(line+"\t"+pval);
-			 
-		 }
-	 }
+	public static void main(String[] args) throws IOException, MathException {
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+		double p = Double.parseDouble(args[0]);
+		String line = null;
+
+
+		while ((line = in.readLine()) != null) {
+
+			String[] tokens = line.split("\t");
+			int reads = Integer.parseInt(tokens[5]);
+			int cCount = Integer.parseInt(tokens[4]);
+			BinomialDistribution binomial = new BinomialDistributionImpl(reads, p);
+			double pval = (reads == 0) ? 1.0d : (1.0d - binomial.cumulativeProbability(cCount - 1));
+			if (System.out.checkError()) {
+				System.exit(1);
+			}
+			System.out.println(line + "\t" + pval);
+
+		}
+	}
 }

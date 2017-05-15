@@ -35,25 +35,25 @@ import es.cnio.bioinfo.bicycle.cli.CLIApplication;
 import es.cnio.bioinfo.bicycle.cli.Command;
 import es.cnio.bioinfo.bicycle.cli.Option;
 
-public class CLIApplicationTest extends CLITest{
-	
+public class CLIApplicationTest extends CLITest {
+
 	@Before
-	public void resetStreams(){
+	public void resetStreams() {
 		CLIApplicationTest.systemerr.reset();
-		CLIApplicationTest.systemout.reset();		
+		CLIApplicationTest.systemout.reset();
 	}
-	
-	
-	CLIApplication mockapp = new CLIApplication(){
+
+
+	CLIApplication mockapp = new CLIApplication() {
 
 		@Override
 		protected List<Command> buildCommands() {
 			List<Command> toret = new LinkedList<Command>();
-			toret.add(new Command(){
+			toret.add(new Command() {
 				Option n = new Option("numerator", "n", "the numerator", false, true);
 				Option d = new Option("denominator", "d", "the denominator", false, true);
 				Option i = new Option("int", "i", "compute as integers", true, false);
-				
+
 				@Override
 				public String getName() {
 					return "divide";
@@ -65,10 +65,10 @@ public class CLIApplicationTest extends CLITest{
 				}
 
 				@Override
-				public List<Option> getOptions() {						
-					return Arrays.asList(new Option[]{n,d,i});
-					
-					
+				public List<Option> getOptions() {
+					return Arrays.asList(new Option[]{n, d, i});
+
+
 				}
 
 				@Override
@@ -76,19 +76,19 @@ public class CLIApplicationTest extends CLITest{
 					float numerator = Float.parseFloat(parameters.get(this.n));
 					float denominator = Float.parseFloat(parameters.get(this.d));
 					boolean asInt = false;
-					if (parameters.containsKey(i)){
+					if (parameters.containsKey(i)) {
 						asInt = true;
 					}
 					float result = numerator / denominator;
-					if (asInt){
-						System.out.println("Result is: "+((int)result));
-							
-					}else{
-						System.out.println("Result is: "+result);
+					if (asInt) {
+						System.out.println("Result is: " + ((int) result));
+
+					} else {
+						System.out.println("Result is: " + result);
 					}
-					
+
 				}
-				
+
 			});
 			return toret;
 		}
@@ -102,40 +102,42 @@ public class CLIApplicationTest extends CLITest{
 		protected String getApplicationCommand() {
 			return "mock";
 		}
-		
+
 	};
+
 	@Test
-	public void testMainHelp() {		
+	public void testMainHelp() {
 		mockapp.run(new String[]{});
-		assertTrue(getStdErr().contains("divide"));			
+		assertTrue(getStdErr().contains("divide"));
 	}
+
 	@Test
-	public void testSpecificHelp() {		
+	public void testSpecificHelp() {
 		mockapp.run(new String[]{"help", "divide"});
-		assertTrue(getStdErr().contains("--numerator"));			
+		assertTrue(getStdErr().contains("--numerator"));
 	}
-	
+
 	@Test
-	public void testRun() {	
-		mockapp.run(new String[]{"divide", "-n","5","-d","2","-i"});
-		assertTrue(getStdOut().contains("Result is: 2"+System.getProperty("line.separator")));
+	public void testRun() {
+		mockapp.run(new String[]{"divide", "-n", "5", "-d", "2", "-i"});
+		assertTrue(getStdOut().contains("Result is: 2" + System.getProperty("line.separator")));
 	}
-	
+
 	@Test
 	public void testMandatoryParameters() {
-		try{
-			mockapp.run(new String[]{"divide", "-n","5"});		
-		}catch(IllegalArgumentException e){
-			assertTrue(e.getMessage().contains("is mandatory"));			
+		try {
+			mockapp.run(new String[]{"divide", "-n", "5"});
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("is mandatory"));
 		}
 	}
-	
+
 	@Test
 	public void testRequiredValueParameters() {
-		try{
-			mockapp.run(new String[]{"divide", "-n"});		
-		}catch(IllegalArgumentException e){
-			assertTrue(e.getMessage().contains("requires"));			
+		try {
+			mockapp.run(new String[]{"divide", "-n"});
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("requires"));
 		}
 	}
 

@@ -37,14 +37,15 @@ public class Utils {
 
 	private static final Logger logger = Logger.getLogger(Utils.class.getName());
 	private static File tmpDir = new File(System.getProperty("java.io.tmpdir"));
-	public static File generateTempDirName(String prefix){
+
+	public static File generateTempDirName(String prefix) {
 		//File tmpDir = new File(System.getProperty("java.io.tmpdir"));
-		logger.info("creating temp SO temp dir is "+tmpDir);
-		
-		return new File(tmpDir.getAbsoluteFile()+File.separator+prefix+UUID.randomUUID().toString());
-		
+		logger.info("creating temp SO temp dir is " + tmpDir);
+
+		return new File(tmpDir.getAbsoluteFile() + File.separator + prefix + UUID.randomUUID().toString());
+
 	}
-	
+
 	public static void deleteDirOnJVMExit(final File dir) {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
@@ -53,123 +54,129 @@ public class Utils {
 			}
 		});
 	}
-	public static boolean deleteDir(File dir) {
-	    if (dir.isDirectory()) {
-	        String[] children = dir.list();
-	        for (int i=0; i<children.length; i++) {
-	            boolean success = deleteDir(new File(dir, children[i]));
-	            if (!success) {
-	                return false;
-	            }
-	        }
-	    }
 
-	    // The directory is now empty so delete it
-	    logger.info("Deleting: "+dir);
-	    return dir.delete();
+	public static boolean deleteDir(File dir) {
+		if (dir.isDirectory()) {
+			String[] children = dir.list();
+			for (int i = 0; i < children.length; i++) {
+				boolean success = deleteDir(new File(dir, children[i]));
+				if (!success) {
+					return false;
+				}
+			}
+		}
+
+		// The directory is now empty so delete it
+		logger.info("Deleting: " + dir);
+		return dir.delete();
 	}
-	
-	public static File touchFile(File directory, String name) throws FileNotFoundException{
-		File newfile = new File(directory.getAbsolutePath()+File.separator+name);		
+
+	public static File touchFile(File directory, String name) throws FileNotFoundException {
+		File newfile = new File(directory.getAbsolutePath() + File.separator + name);
 		touchFile(newfile);
 		return newfile;
 	}
-	public static void touchFile(File f) throws FileNotFoundException{
-		if (!f.exists()){
+
+	public static void touchFile(File f) throws FileNotFoundException {
+		if (!f.exists()) {
 			new FileOutputStream(f);
-		}		
+		}
 	}
-	
-	public static void append(File f, String s) throws IOException{
+
+	public static void append(File f, String s) throws IOException {
 		FileWriter writer = new FileWriter(f);
 		writer.write(s);
 		writer.close();
 	}
-	public static String readFile(File f) throws IOException{
+
+	public static String readFile(File f) throws IOException {
 		StringBuilder builder = new StringBuilder();
 		BufferedReader reader = new BufferedReader(new FileReader(f));
 		boolean first = true;
-		for (String line = reader.readLine(); line!=null; line=reader.readLine(), first=false){
+		for (String line = reader.readLine(); line != null; line = reader.readLine(), first = false) {
 			if (!first) builder.append("\n");
-			builder.append(line);			
+			builder.append(line);
 		}
 		return builder.toString();
 	}
-	
-	
-	public static String getBowtiePath() throws IOException{
+
+
+	public static String getBowtiePath() throws IOException {
 		return getProperty("bowtie.path");
 	}
-	public static String getSamtoolsPath() throws IOException{
+
+	public static String getSamtoolsPath() throws IOException {
 		return getProperty("samtools.path");
 	}
-	public static String getReadsDirectory(){
-		return getClassesPath()+File.separator+"testdata"+File.separator+"READS";
+
+	public static String getReadsDirectory() {
+		return getClassesPath() + File.separator + "testdata" + File.separator + "READS";
 	}
-	
-	public static String getPairedEndReadsDirectory(){
-		return getClassesPath()+File.separator+"testdata"+File.separator+"READSPAIRED";
+
+	public static String getPairedEndReadsDirectory() {
+		return getClassesPath() + File.separator + "testdata" + File.separator + "READSPAIRED";
 	}
-	
-	public static String getNonDirectionalSingleEndDirectory(){
-		return getClassesPath()+File.separator+"testdata"+File.separator+"READSCOKUS";
+
+	public static String getNonDirectionalSingleEndDirectory() {
+		return getClassesPath() + File.separator + "testdata" + File.separator + "READSCOKUS";
 	}
-	
-	public static String getNonDirectionalPairedEndDirectory(){
-		return getClassesPath()+File.separator+"testdata"+File.separator+"READSPAIREDCOKUS";
+
+	public static String getNonDirectionalPairedEndDirectory() {
+		return getClassesPath() + File.separator + "testdata" + File.separator + "READSPAIREDCOKUS";
 	}
-	
-	public static String getReferenceDirectory(){
-		return getClassesPath()+File.separator+"testdata"+File.separator+"REFERENCES";
+
+	public static String getReferenceDirectory() {
+		return getClassesPath() + File.separator + "testdata" + File.separator + "REFERENCES";
 	}
-	
-	public static String getSimulatedDataReferenceDirectory(){
-		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"ref_genomes";
+
+	public static String getSimulatedDataReferenceDirectory() {
+		return getClassesPath() + File.separator + File.separator + "sampledata" + File.separator + "ref_genomes";
 	}
-	
-	public static String getSimulatedDataReadsDirectory(){
-		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads";
+
+	public static String getSimulatedDataReadsDirectory() {
+		return getClassesPath() + File.separator + File.separator + "sampledata" + File.separator + "reads";
 	}
-	
-	public static String getSimulatedNonDirectionalDataReadsDirectory(){
-		return getClassesPath()+File.separator+File.separator+"sampledata"+File.separator+"reads-non-directional";
+
+	public static String getSimulatedNonDirectionalDataReadsDirectory() {
+		return getClassesPath() + File.separator + File.separator + "sampledata" + File.separator +
+				"reads-non-directional";
 	}
-	
-	public static String getSimulatedDataPairedReadsDirectory(){
-		return getClassesPath()+File.separator+"sampledata"+File.separator+"reads-paired";
+
+	public static String getSimulatedDataPairedReadsDirectory() {
+		return getClassesPath() + File.separator + "sampledata" + File.separator + "reads-paired";
 	}
-	
-	public static String getSimulatedNonDirectionalPairedDataReadsDirectory(){
-		return getClassesPath()+File.separator+"sampledata"+File.separator+"reads-non-directional-paired";
+
+	public static String getSimulatedNonDirectionalPairedDataReadsDirectory() {
+		return getClassesPath() + File.separator + "sampledata" + File.separator + "reads-non-directional-paired";
 	}
-	
-	public static String getBedsDirectory(){
-		return getClassesPath()+"testdata"+File.separator+"BED";
+
+	public static String getBedsDirectory() {
+		return getClassesPath() + "testdata" + File.separator + "BED";
 	}
-	
-	public static String getMethylcytosinesDirectory(){
-		return getClassesPath()+"testdata"+File.separator+"METHYLCYTOSINES_FILES";
+
+	public static String getMethylcytosinesDirectory() {
+		return getClassesPath() + "testdata" + File.separator + "METHYLCYTOSINES_FILES";
 	}
-	
-	private static String getProperty(String prop) throws IOException{
+
+	private static String getProperty(String prop) throws IOException {
 		//first, look in system properties, else look in configuration file
 		String value = System.getProperty(prop);
 		if (value != null)
 			return value;
-		
-		FileInputStream myInputStream = new FileInputStream(getClassesPath()+"/"+"nativedirectories.properties");
-		Properties myProps = new Properties();		
+
+		FileInputStream myInputStream = new FileInputStream(getClassesPath() + "/" + "nativedirectories.properties");
+		Properties myProps = new Properties();
 		myProps.load(myInputStream);
 		return myProps.getProperty(prop);
 	}
-	
+
 	public static String getClassesPath() {
 		return Utils.class.getProtectionDomain().getCodeSource().getLocation().getPath().toString();
 	}
-	
-	public static void main(String[] args) throws IOException{
+
+	public static void main(String[] args) throws IOException {
 		System.out.println(getBowtiePath());
 	}
-	
-	
+
+
 }

@@ -40,98 +40,96 @@ import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
-import es.cnio.bioinfo.bicycle.operations.SampleBisulfitation;
 
 public class NonDirectionalAnalysisTest {
 
-	
-	
+
 	private Project prepareProject() throws IOException {
-		
-		File tempDir = Utils.generateTempDirName("newproject");		
+
+		File tempDir = Utils.generateTempDirName("newproject");
 		Project p = Project.buildNewProject(
 				tempDir,
-				new File(Utils.getReferenceDirectory()), 
-				new File(Utils.getNonDirectionalSingleEndDirectory()), 
+				new File(Utils.getReferenceDirectory()),
+				new File(Utils.getNonDirectionalSingleEndDirectory()),
 				new File(Utils.getBowtiePath()),
 				new File(Utils.getSamtoolsPath()), false);
-		
+
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 		BowtieAlignment ba = new BowtieAlignment(p);
-		
-		for (Reference ref : p.getReferences()){				
+
+		for (Reference ref : p.getReferences()) {
 			rb.computeReferenceBisulfitation(Replacement.CT, ref, true);
 			rb.computeReferenceBisulfitation(Replacement.GA, ref, true);
 			ba.buildBowtieIndex(ref);
 		}
-		
-		for (Sample sample : p.getSamples()){
+
+		for (Sample sample : p.getSamples()) {
 			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);*/
-			for (Reference reference : p.getReferences()){
+			for (Reference reference : p.getReferences()) {
 				ba.performBowtieAlignment(sample, reference, false, 1, 140, 20, 0, 64, Quals.BEFORE_1_3);
 			}
 		}
-			
-		return p;		
+
+		return p;
 	}
-	
+
 	@Test
-	public void analysis() throws IOException, InterruptedException{
+	public void analysis() throws IOException, InterruptedException {
 		Project project = prepareProject();
-		try{
-			
+		try {
+
 			MethylationAnalysis ma = new MethylationAnalysis(project);
 
 			List<File> bedFiles = Arrays.asList(new File(Utils.getBedsDirectory()).listFiles(new FilenameFilter() {
-				
+
 				@Override
 				public boolean accept(File arg0, String arg1) {
 					return arg1.endsWith(".bed");
 				}
 			}));
-			
-			for (Sample sample: project.getSamples()){
-				for (Reference reference : project.getReferences()){
-					
+
+			for (Sample sample : project.getSamples()) {
+				for (Reference reference : project.getReferences()) {
+
 					ma.analyzeWithFixedErrorRate(
-							reference, 
-							sample, 
-							false, 
-							4, 
-							true, 
+							reference,
+							sample,
+							false,
+							4,
+							true,
 							false,
 							false,
 							true,
 							1,
-							0.01, 
+							0.01,
 							1,
-							bedFiles, 
+							bedFiles,
 							0.001, 0.001);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
-					
+
 					System.err.println("====METHYLATION-WATSON=====");
-					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.WATSON,reference, sample)));
+					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.WATSON, reference, sample)));
 					System.err.println("===========================");
 
 					System.err.println("====METHYLATION-CRICK=====");
-					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.CRICK,reference, sample)));
+					System.err.println(Utils.readFile(ma.getMethylationFile(Strand.CRICK, reference, sample)));
 					System.err.println("===========================");
-					
-					
+
+
 					System.err.println("=====METHYLCYTOSINES=======");
 					System.err.println(Utils.readFile(ma.getMethylcytosinesFile(reference, sample)));
 					System.err.println(Utils.readFile(ma.getMethylcytosinesVCFFile(reference, sample)));
 					System.err.println("===========================");
-					
+
 					System.err.println("==========SUMMARY==========");
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
 					System.err.println("===========================");
-					
+
 				}
 			}
 		} finally {
-		//	Utils.deleteDirOnJVMExit(project.getProjectDirectory());
+			//	Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 	}
 

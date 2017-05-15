@@ -31,32 +31,36 @@ import org.junit.BeforeClass;
 public abstract class CLITest {
 	protected static ByteArrayOutputStream systemout = new ByteArrayOutputStream();
 	protected static ByteArrayOutputStream systemerr = new ByteArrayOutputStream();
+
 	@BeforeClass
-	public static void hijackStreams(){
-		System.setOut(new PrintStream(new OutputStream(){
+	public static void hijackStreams() {
+		System.setOut(new PrintStream(new OutputStream() {
 			PrintStream out = System.out;
+
 			@Override
 			public void write(int b) throws IOException {
 				systemout.write(b);
-				out.write(b);				
+				out.write(b);
 			}
-			
+
 		}));
-		System.setErr(new PrintStream(new OutputStream(){
+		System.setErr(new PrintStream(new OutputStream() {
 			PrintStream err = System.err;
+
 			@Override
 			public void write(int b) throws IOException {
 				systemerr.write(b);
-				err.write(b);				
+				err.write(b);
 			}
-			
+
 		}));
 	}
-	
-	protected String getStdOut(){
+
+	protected String getStdOut() {
 		return new String(CLITest.systemout.toByteArray());
 	}
-	protected String getStdErr(){
+
+	protected String getStdErr() {
 		return new String(CLITest.systemerr.toByteArray());
 	}
 

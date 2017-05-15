@@ -22,7 +22,6 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 package es.cnio.bioinfo.bicycle.gatk;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -30,76 +29,77 @@ import java.util.Map;
 
 /**
  * Reads several sorted GPFiles, merging them and giving the lines sorted by position
- * @author lipido
  *
+ * @author lipido
  */
-public class GPFilesReader{
+public class GPFilesReader {
 
 	private BufferedReader[] readers;
 	private String[] current;
 
 	private int lastLineReaderIndex = -1;
-	
+
 	private Map<String, Integer> sequenceIndexes = new HashMap<>();
-	public GPFilesReader(List<String> sequenceNames, BufferedReader ... bufferedReaders) throws IOException {
-		
+
+	public GPFilesReader(List<String> sequenceNames, BufferedReader... bufferedReaders) throws IOException {
+
 		int i = 0;
-		for (String sequenceName: sequenceNames) {
+		for (String sequenceName : sequenceNames) {
 			sequenceIndexes.put(sequenceName, i++);
 		}
-		
+
 		readers = bufferedReaders;
 		current = new String[readers.length];
-		
+
 		i = 0;
-		for (BufferedReader reader : readers){
+		for (BufferedReader reader : readers) {
 			current[i++] = readLine(reader);
 		}
 	}
-	
-	public String readLine() throws IOException{
+
+	public String readLine() throws IOException {
 		String minimum = null;
 		String minimumContig = null;
 		long minimumPos = Long.MAX_VALUE;
-		
+
 		int i = 0;
-		int whoIsMinimum=0;
-		for (String currentLine : current){
-			if (currentLine != null){
-				if (minimumContig == null){
-					String[] tokens = currentLine.split("\t",3);					
+		int whoIsMinimum = 0;
+		for (String currentLine : current) {
+			if (currentLine != null) {
+				if (minimumContig == null) {
+					String[] tokens = currentLine.split("\t", 3);
 					minimum = currentLine;
 					minimumContig = tokens[0];
 					minimumPos = Long.parseLong(tokens[1]);
 					whoIsMinimum = i;
-				}else{
-					String[] tokens = currentLine.split("\t",3);
-					if (minimumContig.equals(tokens[0])){
+				} else {
+					String[] tokens = currentLine.split("\t", 3);
+					if (minimumContig.equals(tokens[0])) {
 						long currentPos = Long.parseLong(tokens[1]);
-						if (currentPos < minimumPos){
+						if (currentPos < minimumPos) {
 							minimum = currentLine;
 							minimumContig = tokens[0];
 							minimumPos = currentPos;
 							whoIsMinimum = i;
 						}
-					}else if (this.sequenceIndexes.get(minimumContig)>this.sequenceIndexes.get(tokens[0])){
+					} else if (this.sequenceIndexes.get(minimumContig) > this.sequenceIndexes.get(tokens[0])) {
 						minimumContig = tokens[0];
 						minimum = currentLine;
 						minimumPos = Long.parseLong(tokens[1]);
-						whoIsMinimum=i;
+						whoIsMinimum = i;
 					}
 				}
-				
+
 			}
 			i++;
 		}
-		if (minimum != null){
+		if (minimum != null) {
 			this.current[whoIsMinimum] = readLine(this.readers[whoIsMinimum]);
 			this.lastLineReaderIndex = whoIsMinimum;
 		} else {
 			this.lastLineReaderIndex = -1;
 		}
-		
+
 		return minimum;
 	}
 
@@ -108,14 +108,14 @@ public class GPFilesReader{
 		do {
 			line = reader.readLine();
 		} while (line != null && line.startsWith("#"));
-		
+
 		return line;
 	}
-	
+
 	/**
 	 * Returns the index of the buffer where the last returned line was extracted from
-	 *  If no line was currently extracted of null was returned, this method returns -1.
-	 *  
+	 * If no line was currently extracted of null was returned, this method returns -1.
+	 *
 	 * @return The index of the buffer where the last line was extracted from.
 	 */
 	public int getLastLineReaderIndex() {

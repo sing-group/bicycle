@@ -29,14 +29,14 @@ public class BicycleApplication extends CLIApplication {
 
 	@Override
 	protected String getDescription() {
-			Scanner sc = new Scanner(getClass().getResourceAsStream("header.txt"));
-			StringBuilder builder = new StringBuilder();
-			while (sc.hasNextLine()) {
-				builder.append(sc.nextLine()+"\n");
-			}
-			return builder.toString();
+		Scanner sc = new Scanner(getClass().getResourceAsStream("header.txt"));
+		StringBuilder builder = new StringBuilder();
+		while (sc.hasNextLine()) {
+			builder.append(sc.nextLine() + "\n");
+		}
+		return builder.toString();
 	}
-	
+
 	@Override
 	public List<Command> buildCommands() {
 		List<Command> commands = new LinkedList<Command>();
@@ -46,7 +46,7 @@ public class BicycleApplication extends CLIApplication {
 		commands.add(new ReferenceIndexingCommand());
 		commands.add(new BowtieAlignmentCommand());
 		commands.add(new MethylationAnalysisCommand());
-		commands.add(new DifferentialMethylationAnalysisCommand());		
+		commands.add(new DifferentialMethylationAnalysisCommand());
 		return commands;
 	}
 
@@ -54,11 +54,11 @@ public class BicycleApplication extends CLIApplication {
 	protected String getApplicationName() {
 		return "bicycle";
 	}
-	
+
 	@Override
 	protected String getApplicationCommand() {
 		return "bicycle";
 	}
-	
-	
+
+
 }

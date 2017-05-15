@@ -32,39 +32,41 @@ import java.util.Map;
 
 import es.cnio.bioinfo.bicycle.Project;
 
-public abstract class ProjectCommand extends AbstractCommand{
+public abstract class ProjectCommand extends AbstractCommand {
 
 
 	@Override
 	protected List<Option> createOptions() {
 		List<Option> toret = new LinkedList<Option>();
-		
-		toret.add(new Option("project-directory", "p", 
+
+		toret.add(new Option("project-directory", "p",
 				"project directory. Use command create-project to create a new project", false, true));
-		
+
 		return toret;
 	}
-	
+
 	@Override
 	public final void execute(CLIApplication app, Map<Option, String> parameters) throws Exception {
 		Project project = Project.readFromDirectory(new File(parameters.get(this.findOption("p"))));
 		writeExecutionLog(app, project);
 		executeImpl(app, project, parameters);
-		
+
 	}
 
-	public static void writeExecutionLog(CLIApplication app, Project p) throws FileNotFoundException{
-		File log = new File(p.getProjectDirectory()+File.separator+"executions.log");
+	public static void writeExecutionLog(CLIApplication app, Project p) throws FileNotFoundException {
+		File log = new File(p.getProjectDirectory() + File.separator + "executions.log");
 		PrintStream out = new PrintStream(new FileOutputStream(log, true));
 		out.println(new Date());
 		out.print(app.getApplicationCommand());
-		for(String s: app.commandline){
-			out.print(" "+s);
+		for (String s : app.commandline) {
+			out.print(" " + s);
 		}
 		out.println();
 		out.println();
-		
+
 	}
-	protected abstract void executeImpl(CLIApplication app, Project p, Map<Option, String> parameters) throws Exception;
+
+	protected abstract void executeImpl(CLIApplication app, Project p, Map<Option, String> parameters) throws
+			Exception;
 
 }
