@@ -36,6 +36,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -116,11 +117,11 @@ class MethylationFilePair {
 	private static int PRINTS_BEFORE_FLUSH = 50;
 	private int printWatsonCount = 0;
 	private int printCrickCount = 0;
-	private StringBuilder watsonBuffer = new StringBuilder();
-	private StringBuilder crickBuffer = new StringBuilder();
+	private StringBuffer watsonBuffer = new StringBuffer();
+	private StringBuffer crickBuffer = new StringBuffer();
 
-	private Map<Context, Map<Double, Integer>> watsonPvals = new HashMap<Context, Map<Double, Integer>>();
-	private Map<Context, Map<Double, Integer>> crickPvals = new HashMap<Context, Map<Double, Integer>>();
+	private Map<Context, Map<Double, Integer>> watsonPvals = Collections.synchronizedMap(new HashMap<>());
+	private Map<Context, Map<Double, Integer>> crickPvals = Collections.synchronizedMap(new HashMap<>());
 
 	public void pushCall(MethylationCall call) {
 		Map<Double, Integer> pvals = null;
@@ -278,6 +279,7 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 	private HashMap<Strand, HashMap<Context, Double>> cutOffs = new HashMap<Strand, HashMap<Context, Double>>();
 
 	private Tools tools = new Tools();
+	private ListerFilter listerFilter;
 
 	@Override
 	public List<MethylationCall> map(RefMetaDataTracker metadata, ReferenceContext refContext, AlignmentContext
@@ -524,14 +526,6 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 		summary.println("====ANALYSIS PARAMETERS=======================================================");
 		summary.println(" Correct non-CG: " + this.correctNonCG);
 
-		//has lister filters?
-		ListerFilter listerFilter = null;
-		for (SamRecordFilter filter : this.getToolkit().getFilters()) {
-			if (filter instanceof ListerFilter) {
-				listerFilter = (ListerFilter) filter;
-				break;
-			}
-		}
 
 		summary.println(" Filters:" + (listerFilter == null ? "\n" : "\n  " + listerFilter.toString().replace(",", "\n" +
 				" ")));
@@ -556,6 +550,18 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 		//cut-off details
 		summary.println("Cut-off computation details:\n" + cutoffDetails);
 
+	}
+
+	private ListerFilter getListerFilter() {
+		//has lister filters?
+		ListerFilter listerFilter = null;
+		for (SamRecordFilter filter : this.getToolkit().getFilters()) {
+			if (filter instanceof ListerFilter) {
+				listerFilter = (ListerFilter) filter;
+				break;
+			}
+		}
+		return listerFilter;
 	}
 
 	private File getSummaryFile() {
@@ -689,6 +695,7 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 	@Override
 	public void initialize() {
 		super.initialize();
+		this.listerFilter = this.getListerFilter();
 		ListerFilter.trim = this.trim;
 
 		if (this.controlGenome.equals("") && this.errorRate.equals("")) {
@@ -721,6 +728,10 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 			this.error = walker.getLastTraversalResult();
 
 			arguments.intervals = oldIntervals;
+
+			if (this.listerFilter != null) {
+				this.listerFilter.resetCounters();
+			}
 
 
 		} else {
@@ -765,7 +776,6 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 		}
 
 		out.println("Error computed " + this.error);
-
 		for (Strand strand : Strand.values()) {
 			File file = getMethylationfile(strand);
 			methylationFiles.put(strand, file);
@@ -835,9 +845,16 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 
 				int downstreamPosition = (int) strand.downstream(alignmentContext.getPosition());
 				// use raw Picard api to see the downstream bases
+
+				if (this.listerFilter != null) {
+					this.listerFilter.freezeCountersInThread();
+				}
 				Collection<RecordAndOffset> strandReads = tools.getReadsForLocus(this.getToolkit(), strand,
 						alignmentContext.getContig(), downstreamPosition, removeClonal);
 
+				if (this.listerFilter != null){
+					this.listerFilter.unfreezeCountersInThread();
+				}
 				int strandGCount = 0;
 				int strandDepth = strandReads.size();
 				double strandGRatio = 0;
@@ -850,9 +867,15 @@ public class ListerMethylationWalker extends LocusWalker<List<MethylationCall>, 
 				strandGRatio = (double) strandGCount / (double) strandDepth;
 
 				if (strandGRatio >= 0.2d) {
+
+					if (this.listerFilter != null) {
+						this.listerFilter.freezeCountersInThread();
+					}
 					Collection<RecordAndOffset> oppositeReads = tools.getReadsForLocus(this.getToolkit(),
 							oppositeStrand, alignmentContext.getContig(), downstreamPosition, removeClonal);
-					
+					if (this.listerFilter != null){
+						this.listerFilter.unfreezeCountersInThread();
+					}
 					/* DEBUG */
 					/*StringBuilder s = new StringBuilder();
 					for (RecordAndOffset ro : oppositeReads){

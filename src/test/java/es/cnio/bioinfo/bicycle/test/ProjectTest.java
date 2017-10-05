@@ -50,6 +50,7 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()),
 					new File(Utils.getReadsDirectory()),
 					new File(Utils.getBowtiePath()),
+					new File(Utils.getBowtie2Path()),
 					new File(Utils.getSamtoolsPath()),
 					true);
 		} finally {
@@ -66,6 +67,7 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()),
 					new File(Utils.getReadsDirectory()),
 					new File(Utils.getBowtiePath()),
+					new File(Utils.getBowtie2Path()),
 					new File(Utils.getSamtoolsPath()),
 					true);
 
@@ -86,6 +88,7 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()),
 					new File(Utils.getReadsDirectory()),
 					new File(Utils.getBowtiePath()),
+					new File(Utils.getBowtie2Path()),
 					new File(Utils.getSamtoolsPath()),
 					true);
 
@@ -140,6 +143,7 @@ public class ProjectTest {
 					new File(Utils.getReferenceDirectory()),
 					samplesDir,
 					new File(Utils.getBowtiePath()),
+					new File(Utils.getBowtie2Path()),
 					new File(Utils.getSamtoolsPath()),
 					true);
 

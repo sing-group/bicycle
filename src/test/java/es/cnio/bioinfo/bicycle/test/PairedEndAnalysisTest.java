@@ -27,22 +27,37 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment;
-import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Quals;
+import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Bowtie1Quals;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
 
+@RunWith(Parameterized.class)
 public class PairedEndAnalysisTest {
 
+	private final int bowtieVersion;
+
+	@Parameterized.Parameters
+	public static Collection<Object[]> data() {
+		return Arrays.asList(new Object[][]{{1}, {2}});
+	}
+
+	public PairedEndAnalysisTest(int bowtieVersion) {
+		this.bowtieVersion = bowtieVersion;
+	}
 
 	private Project prepareProject() throws IOException {
 
@@ -52,6 +67,7 @@ public class PairedEndAnalysisTest {
 				new File(Utils.getReferenceDirectory()),
 				new File(Utils.getPairedEndReadsDirectory()),
 				new File(Utils.getBowtiePath()),
+				new File(Utils.getBowtie2Path()),
 				new File(Utils.getSamtoolsPath()), true, true, "-1.fastq");
 
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
@@ -60,13 +76,23 @@ public class PairedEndAnalysisTest {
 		for (Reference ref : p.getReferences()) {
 			rb.computeReferenceBisulfitation(Replacement.CT, ref, true);
 			rb.computeReferenceBisulfitation(Replacement.GA, ref, true);
-			ba.buildBowtieIndex(ref);
+			if (this.bowtieVersion == 1) {
+				ba.buildBowtieIndex(ref);
+			} else {
+				ba.buildBowtie2Index(ref);
+			}
 		}
 		for (Sample sample : p.getSamples()) {
 			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);*/
 			for (Reference reference : p.getReferences()) {
-				ba.performBowtieAlignment(sample, reference, false, 4, 140, 20, 0, 64, Quals.BEFORE_1_3);
+				if (bowtieVersion == 1) {
+					ba.performBowtie1Alignment(sample, reference, false, 4, 140, 20, 0, 64, Bowtie1Quals.BEFORE_1_3);
+				} else {
+					ba.performBowtie2Alignment(sample, reference, false, 4, false, 15, 2, 20, "S,1,1.15",
+							"L,-0.6,-0.6", 0,
+							BowtieAlignment.Bowtie2Quals.BEFORE_1_3);
+				}
 			}
 		}
 
@@ -96,6 +122,7 @@ public class PairedEndAnalysisTest {
 							false,
 							4,
 							true,
+							true,
 							false,
 							false,
 							true,
@@ -124,6 +151,7 @@ public class PairedEndAnalysisTest {
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
 					System.err.println("===========================");
 
+					Assert.assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("CHH: 3/13") != -1);
 				}
 			}
 		} finally {

@@ -105,6 +105,10 @@ public class Utils {
 		return getProperty("bowtie.path");
 	}
 
+	public static String getBowtie2Path() throws IOException {
+		return getProperty("bowtie2.path");
+	}
+
 	public static String getSamtoolsPath() throws IOException {
 		return getProperty("samtools.path");
 	}

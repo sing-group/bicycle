@@ -54,9 +54,13 @@ public class CreateProjectCommand extends AbstractCommand {
 		toret.add(new Option("reads-directory", "f", "directory with reads samples (directories with fastq files). " +
 				"One" +
 				" directory per sample", false, true));
-		toret.add(new Option("bowtie-directory", "b", "directory where bowtie aligner is installed. If not " +
-				"specified," +
-				" bowtie is expected to be in PATH",
+		toret.add(new Option("bowtie-directory", "b", "directory where bowtie v1.x.x aligner is installed. If not " +
+				"specified and you will use bowtie 1 during alignment," +
+				" bowtie 1 is expected to be in PATH",
+				true, true));
+		toret.add(new Option("bowtie2-directory", "b2", "directory where bowtie v2.x.x aligner is installed. If not " +
+				"specified and you will use bowtie 2 during alignment," +
+				" bowtie 2 is expected to be in PATH",
 				true, true));
 		toret.add(new Option("samtools-directory", "s", "directory where samtools are installed. If not specified, " +
 				"samtools is expected to be in PATH", true, true));
@@ -79,6 +83,11 @@ public class CreateProjectCommand extends AbstractCommand {
 			bowtieDirectory = new File(parameters.get(findOption("b")));
 		}
 
+		File bowtie2Directory = null;
+		if (parameters.containsKey(findOption("b2"))) {
+			bowtie2Directory = new File(parameters.get(findOption("b2")));
+		}
+
 		File samtoolsDirectory = null;
 		if (parameters.containsKey(findOption("s"))) {
 			samtoolsDirectory = new File(parameters.get(findOption("s")));
@@ -90,11 +99,11 @@ public class CreateProjectCommand extends AbstractCommand {
 		Project project = null;
 		if (mate1Regexp != null) {
 			project = Project.buildNewProject(projectDirectory, referenceDirectory, readsDirectory, bowtieDirectory,
-					samtoolsDirectory, directional, true, mate1Regexp);
+					bowtie2Directory, samtoolsDirectory, directional, true, mate1Regexp);
 
 		} else {
 			project = Project.buildNewProject(projectDirectory, referenceDirectory, readsDirectory, bowtieDirectory,
-					samtoolsDirectory, directional);
+					bowtie2Directory, samtoolsDirectory, directional);
 		}
 		ProjectCommand.writeExecutionLog(app, project);
 	}

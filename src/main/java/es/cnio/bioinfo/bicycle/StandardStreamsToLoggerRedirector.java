@@ -12,9 +12,6 @@ import java.util.logging.Logger;
  * Created by lipido on 3/05/17.
  */
 public class StandardStreamsToLoggerRedirector {
-	private final Logger logger;
-	private final Level level;
-	private final MessageFilter messageFilter;
 	private final ToLoggerPrintStream errToLoggerPrintStream;
 	private final ToLoggerPrintStream outToLoggerPrintStream;
 	private static PrintStream originalStdOut;
@@ -30,14 +27,20 @@ public class StandardStreamsToLoggerRedirector {
 	}
 
 	public StandardStreamsToLoggerRedirector(Logger logger, Level level, MessageFilter filter) {
-		this.logger = logger;
-		this.level = level;
-		this.messageFilter = filter;
-		this.errToLoggerPrintStream = new ToLoggerPrintStream(this.logger, this.level, this.messageFilter,
+		this.errToLoggerPrintStream = new ToLoggerPrintStream(logger, level, filter,
 				originalStdErr);
-		this.outToLoggerPrintStream = new ToLoggerPrintStream(this.logger, this.level, this.messageFilter,
+		this.outToLoggerPrintStream = new ToLoggerPrintStream(logger, level, filter,
 				originalStdOut);
 	}
+
+	public StandardStreamsToLoggerRedirector(Logger stdOutlogger, Level stdOutLevel, MessageFilter stdOutFilter,
+											 Logger stdErrlogger, Level stdErrLevel, MessageFilter stdErrFilter) {
+		this.errToLoggerPrintStream = new ToLoggerPrintStream(stdOutlogger, stdOutLevel, stdOutFilter,
+				originalStdErr);
+		this.outToLoggerPrintStream = new ToLoggerPrintStream(stdErrlogger, stdErrLevel, stdErrFilter,
+				originalStdOut);
+	}
+
 
 	public void redirectStreams() {
 		System.setErr(errToLoggerPrintStream);

@@ -55,6 +55,7 @@ public class ReadsBisulfitationTest {
 					new File(Utils.getReferenceDirectory()),
 					readsDir,
 					new File(Utils.getBowtiePath()),
+					new File(Utils.getBowtie2Path()),
 					new File(Utils.getSamtoolsPath()),
 					true);
 			for (Sample sample : p.getSamples()) {

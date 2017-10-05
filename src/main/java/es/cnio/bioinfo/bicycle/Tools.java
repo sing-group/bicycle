@@ -37,10 +37,13 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import es.cnio.bioinfo.bicycle.gatk.Strand;
 import net.sf.picard.filter.SamRecordFilter;
@@ -848,13 +851,11 @@ public final class Tools {
 	}
 
 
-	private static HashMap<Thread, HashMap<Strand, SamLocusIterator>> previousIterators = new HashMap<Thread,
-			HashMap<Strand, SamLocusIterator>>();
-	private static HashMap<Thread, HashMap<Strand, Interval>> previousIntervals = new HashMap<Thread, HashMap<Strand,
-			Interval>>();
-	private static HashMap<SamLocusIterator, LocusInfo> currentLocus = new HashMap<SamLocusIterator, LocusInfo>();
+	private static ThreadLocal<HashMap<Strand, SamLocusIterator>> previousIterators = new ThreadLocal<>();
+	private static ThreadLocal<HashMap<Strand, Interval>> previousIntervals = new ThreadLocal<>();
+	private static Map<SamLocusIterator, LocusInfo> currentLocus = Collections.synchronizedMap(new HashMap<SamLocusIterator, LocusInfo>());
 
-	private static int INTERVAL_WINDOW = 10000000;
+	private static final int INTERVAL_WINDOW = 10000000;
 
 	public static List<RecordAndOffset> getReadsForLocus(Strand strand,
 														 String contig, int pos, boolean filterDuplicates,
@@ -864,19 +865,19 @@ public final class Tools {
 		for (SAMFileReader reader : readers) {
 
 			//try to find previous iterator
-			HashMap<Strand, SamLocusIterator> threadIterators = previousIterators.get(Thread.currentThread());
+			HashMap<Strand, SamLocusIterator> threadIterators = previousIterators.get();
 			if (threadIterators == null) {
-				threadIterators = new HashMap<Strand, SamLocusIterator>();
-				previousIterators.put(Thread.currentThread(), threadIterators);
+				threadIterators = new HashMap<>();
+				previousIterators.set(threadIterators);
 
-				HashMap<Strand, Interval> theadPreviousIntervals = new HashMap<Strand, Interval>();
-				previousIntervals.put(Thread.currentThread(), theadPreviousIntervals);
+				HashMap<Strand, Interval> threadPreviousIntervals = new HashMap<>();
+				previousIntervals.set(threadPreviousIntervals);
 			}
 
 			SamLocusIterator iterator = threadIterators.get(strand);
 			Interval interval = null;
 			if (iterator != null) {
-				interval = previousIntervals.get(Thread.currentThread()).get(strand);
+				interval = previousIntervals.get().get(strand);
 				if (!interval.getSequence().equals(contig) || interval.getEnd() < pos || interval.getStart() > pos) {
 
 					//System.out.println("consuming iterator with interval "+interval+" want to go to: "+pos);
@@ -904,7 +905,7 @@ public final class Tools {
 					iterator = createSamLocusIterator(reader, site, filters);
 
 					try {
-						iterator.iterator();//call to avoid nullpointer exception
+						iterator.iterator();//call to avoid NPE
 					} catch (BufferUnderflowException e) {
 						iterator = null;
 
@@ -918,8 +919,8 @@ public final class Tools {
 			}
 			//put the iterator in cache
 			try {
-				previousIterators.get(Thread.currentThread()).put(strand, iterator);
-				previousIntervals.get(Thread.currentThread()).put(strand, interval);
+				previousIterators.get().put(strand, iterator);
+				previousIntervals.get().put(strand, interval);
 			} catch (NullPointerException e) {
 				System.out.println("null pointer");
 			}
@@ -993,4 +994,5 @@ public final class Tools {
 		iterator.setEmitUncoveredLoci(false);
 		return iterator;
 	}
+
 } // fin de clase

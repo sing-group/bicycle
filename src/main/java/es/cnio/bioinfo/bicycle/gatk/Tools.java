@@ -24,9 +24,11 @@ package es.cnio.bioinfo.bicycle.gatk;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -45,24 +47,22 @@ public class Tools {
 
 
 	///cache files (readers are per thread, in order to avoid synchronization)
-	private HashMap<Thread, HashMap<Strand, ArrayList<SAMFileReader>>> perThreadReaders = new HashMap<Thread,
-			HashMap<Strand, ArrayList<SAMFileReader>>>();
-
+	private ThreadLocal<Map<Strand, ArrayList<SAMFileReader>>> perThreadReaders = new ThreadLocal<>();
 
 	public Collection<RecordAndOffset> getReadsForLocus(GenomeAnalysisEngine toolkit, Strand strand, String contig,
 														int pos, boolean filterDuplicates) {
-		HashMap<Strand, ArrayList<SAMFileReader>> perStrandReaders = perThreadReaders.get(Thread.currentThread());
+		Map<Strand, ArrayList<SAMFileReader>> perStrandReaders = perThreadReaders.get();
 
 		if (perStrandReaders == null) {
 
-			perStrandReaders = new HashMap<Strand, ArrayList<SAMFileReader>>();
-			perThreadReaders.put(Thread.currentThread(), perStrandReaders);
+			perStrandReaders = new HashMap<>();
+			perThreadReaders.set(perStrandReaders);
 		}
 
 		ArrayList<SAMFileReader> readers = perStrandReaders.get(strand);
 		if (readers == null) {
 
-			readers = new ArrayList<SAMFileReader>();
+			readers = new ArrayList<>();
 			for (File f : getFilesForStrand(toolkit, strand)) {
 				SAMFileReader reader = new SAMFileReader(f, true);
 				readers.add(reader);
@@ -71,14 +71,14 @@ public class Tools {
 			perStrandReaders.put(strand, readers);
 		}
 
-		LinkedList<SamRecordFilter> filters = new LinkedList<SamRecordFilter>(toolkit.getFilters());
+		LinkedList<SamRecordFilter> filters = new LinkedList<>(toolkit.getFilters());
 
 		return es.cnio.bioinfo.bicycle.Tools.getReadsForLocus(strand, contig, pos, filterDuplicates, readers,
 				filters, ListerFilter.TRIMMED_BASE);
 	}
 
 
-	private HashMap<Strand, Collection<File>> strandFilesCache = new HashMap<Strand, Collection<File>>();
+	private Map<Strand, Collection<File>> strandFilesCache = Collections.synchronizedMap(new HashMap<>());
 
 	private Collection<File> getFilesForStrand(GenomeAnalysisEngine toolkit, Strand strand) {
 		Collection<File> toret = strandFilesCache.get(strand);

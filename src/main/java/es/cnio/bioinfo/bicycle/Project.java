@@ -43,7 +43,8 @@ public class Project {
 	public static final String OUTPUT_DIRECTORY = "output" + File.separator;
 	public static final String CONFIG_FILE = "config.txt";
 
-	private File bowtieDirectory, samtoolsDirectory, projectDirectory, referenceDirectory, readsDirectory;
+	private File bowtieDirectory, bowtie2Directory, samtoolsDirectory, projectDirectory, referenceDirectory,
+			readsDirectory;
 	private boolean paired = false;
 	private boolean directional = true;
 	private String mate1regexp = null;
@@ -57,6 +58,10 @@ public class Project {
 
 	public File getBowtieDirectory() {
 		return bowtieDirectory;
+	}
+
+	public File getBowtie2Directory() {
+		return bowtie2Directory;
 	}
 
 	public File getSamtoolsDirectory() {
@@ -129,6 +134,11 @@ public class Project {
 			wr.newLine();
 		}
 
+		if (bowtie2Directory != null) {
+			wr.write("bowtie2_directory:" + bowtie2Directory.getAbsolutePath());
+			wr.newLine();
+		}
+
 		if (samtoolsDirectory != null) {
 			wr.write("samtools_directory:" + samtoolsDirectory.getAbsolutePath());
 			wr.newLine();
@@ -165,13 +175,14 @@ public class Project {
 
 	public static Project buildNewProject(File projectDirectory,
 										  File referenceDirectory, File readsDirectory, File bowtieDirectory,
-										  File samtoolsDirectory, boolean directional) throws IOException {
+										  File bowtie2Directory, File samtoolsDirectory, boolean directional) throws IOException {
 		return buildNewProject(projectDirectory, referenceDirectory,
-				readsDirectory, bowtieDirectory, samtoolsDirectory, directional, false, null);
+				readsDirectory, bowtieDirectory, bowtie2Directory, samtoolsDirectory, directional, false, null);
 	}
 
 	public static Project buildNewProject(File projectDirectory,
 										  File referenceDirectory, File readsDirectory, File bowtieDirectory,
+										  File bowtie2Directory,
 										  File samtoolsDirectory, boolean isDirectional, boolean isPaired, String
 												  mate1regexp)
 			throws IOException {
@@ -189,6 +200,8 @@ public class Project {
 
 
 		p.bowtieDirectory = bowtieDirectory;
+		p.bowtie2Directory = bowtie2Directory;
+
 		p.samtoolsDirectory = samtoolsDirectory;
 		p.paired = isPaired;
 		p.directional = isDirectional;
@@ -235,11 +248,12 @@ public class Project {
 					p.projectDirectory = new File(value);
 				else if (key.equals("reference_directory"))
 					p.referenceDirectory = new File(value);
-				else if (key.equals("reads_directory")) {
+				else if (key.equals("reads_directory"))
 					p.readsDirectory = new File(value);
-
-				} else if (key.equals("bowtie_directory"))
+				else if (key.equals("bowtie_directory"))
 					p.bowtieDirectory = new File(value);
+				else if (key.equals("bowtie2_directory"))
+					p.bowtie2Directory = new File(value);
 				else if (key.equals("samtools_directory"))
 					p.samtoolsDirectory = new File(value);
 				else if (key.equals("paired")) {

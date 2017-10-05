@@ -26,21 +26,41 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment;
-import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Quals;
+import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Bowtie1Quals;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
 import es.cnio.bioinfo.bicycle.test.Utils;
 
+@RunWith(Parameterized.class)
 public class SimulatedNonDirectionalPairedDataAnalysisTest {
 
+	private final int bowtieVersion;
+	private final boolean bowtie2Local;
+
+	@Parameters
+	public static Collection<Object[]> data() {
+		return Arrays.asList(new Object[][]{{1, false}, {2,false}, {2, true}});
+	}
+
+	public SimulatedNonDirectionalPairedDataAnalysisTest(int bowtieVersion, boolean bowtie2Local) {
+		this.bowtieVersion = bowtieVersion;
+		this.bowtie2Local = bowtie2Local;
+	}
 
 	private Project prepareProject() throws IOException {
 
@@ -51,6 +71,7 @@ public class SimulatedNonDirectionalPairedDataAnalysisTest {
 				new File(Utils.getSimulatedDataReferenceDirectory()),
 				new File(Utils.getSimulatedNonDirectionalPairedDataReadsDirectory()),
 				new File(Utils.getBowtiePath()),
+				new File(Utils.getBowtie2Path()),
 				new File(Utils.getSamtoolsPath()), false, true, "_1.fastq");
 
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
@@ -59,13 +80,39 @@ public class SimulatedNonDirectionalPairedDataAnalysisTest {
 		for (Reference ref : p.getReferences()) {
 			rb.computeReferenceBisulfitation(Replacement.CT, ref, true);
 			rb.computeReferenceBisulfitation(Replacement.GA, ref, true);
-			ba.buildBowtieIndex(ref);
+			if (this.bowtieVersion == 1) {
+				ba.buildBowtieIndex(ref);
+			} else {
+				ba.buildBowtie2Index(ref);
+			}
 		}
 		for (Sample sample : p.getSamples()) {
 			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);*/
 			for (Reference reference : p.getReferences()) {
-				ba.performBowtieAlignment(sample, reference, false, 4, 140, 20, 0, 64, Quals.BEFORE_1_3, 0, 500);
+				if (bowtieVersion == 1) {
+					ba.performBowtie1Alignment(sample, reference, false, 4, 140, 20, 0, 64, Bowtie1Quals.BEFORE_1_3, 0,
+							500);
+				} else {
+					int D = 15;
+					int R = 2;
+					int L = 22;
+					String i = "S,1,1.15";
+					String sm = "L,-0.6,-0.6";
+					if (this.bowtie2Local) {
+						D = 15;
+						R = 2;
+						L = 20;
+						i = "S,1,0.75";
+						sm = "G,20,8";
+
+					}
+
+					ba.performBowtie2Alignment(sample, reference, false, 4, this.bowtie2Local, D, R, L, i, sm,
+							0, BowtieAlignment
+							.Bowtie2Quals
+							.BEFORE_1_3, 0, 500);
+				}
 			}
 		}
 
@@ -85,11 +132,12 @@ public class SimulatedNonDirectionalPairedDataAnalysisTest {
 			for (Sample sample : project.getSamples()) {
 				for (Reference reference : project.getReferences()) {
 
-					ma.analyzeWithFixedErrorRate(
+					ma.analyzeWithErrorFromControlGenome(
 							reference,
 							sample,
 							true,
 							4,
+							true,
 							true,
 							true,
 							false,
@@ -98,15 +146,16 @@ public class SimulatedNonDirectionalPairedDataAnalysisTest {
 							0.01,
 							4,
 							new ArrayList<File>(),
-							0.0, 0.0);
+							"Ecoli");
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 
 					System.err.println("==========SUMMARY==========");
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
-					assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("0.30") != -1); //assert
 					// the 30% methylation level on CG
-
+					Matcher matcher = Pattern.compile("CG: [0-9]+/[0-9]+ \\((0\\.[0-9]+)\\)").matcher(Utils.readFile(ma.getSummaryFile(reference, sample)));
+					assertTrue(matcher.find());
+					assertTrue(Math.abs(Double.parseDouble(matcher.group(1)) - 0.30d) < 0.01);
 					System.err.println("===========================");
 
 				}
@@ -114,8 +163,5 @@ public class SimulatedNonDirectionalPairedDataAnalysisTest {
 		} finally {
 			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
-
 	}
-
-
 }

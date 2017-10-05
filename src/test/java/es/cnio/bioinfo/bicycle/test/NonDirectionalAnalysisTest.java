@@ -27,22 +27,38 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment;
-import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Quals;
+import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Bowtie1Quals;
 import es.cnio.bioinfo.bicycle.operations.BowtieAlignment.Strand;
 import es.cnio.bioinfo.bicycle.operations.MethylationAnalysis;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation;
 import es.cnio.bioinfo.bicycle.operations.ReferenceBisulfitation.Replacement;
 
+@RunWith(Parameterized.class)
 public class NonDirectionalAnalysisTest {
 
+	private final int bowtieVersion;
+
+	@Parameters
+	public static Collection<Object[]> data() {
+		return Arrays.asList(new Object[][]{{1}, {2}});
+	}
+
+	public NonDirectionalAnalysisTest(int bowtieVersion) {
+		this.bowtieVersion = bowtieVersion;
+	}
 
 	private Project prepareProject() throws IOException {
 
@@ -52,6 +68,7 @@ public class NonDirectionalAnalysisTest {
 				new File(Utils.getReferenceDirectory()),
 				new File(Utils.getNonDirectionalSingleEndDirectory()),
 				new File(Utils.getBowtiePath()),
+				new File(Utils.getBowtie2Path()),
 				new File(Utils.getSamtoolsPath()), false);
 
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
@@ -60,14 +77,25 @@ public class NonDirectionalAnalysisTest {
 		for (Reference ref : p.getReferences()) {
 			rb.computeReferenceBisulfitation(Replacement.CT, ref, true);
 			rb.computeReferenceBisulfitation(Replacement.GA, ref, true);
-			ba.buildBowtieIndex(ref);
+			if (this.bowtieVersion == 1) {
+				ba.buildBowtieIndex(ref);
+			} else {
+				ba.buildBowtie2Index(ref);
+			}
 		}
 
 		for (Sample sample : p.getSamples()) {
 			/*SampleBisulfitation sb = new SampleBisulfitation(sample);
 			sb.computeSampleBisulfitation(true);*/
 			for (Reference reference : p.getReferences()) {
-				ba.performBowtieAlignment(sample, reference, false, 1, 140, 20, 0, 64, Quals.BEFORE_1_3);
+
+				if (bowtieVersion == 1) {
+					ba.performBowtie1Alignment(sample, reference, false, 1, 140, 20, 0, 64, Bowtie1Quals.BEFORE_1_3);
+				} else {
+					ba.performBowtie2Alignment(sample, reference, false, 1, false, 15, 2, 20, "S,1,1.15",
+							"L,-0.6,-0.6", 0,
+							BowtieAlignment.Bowtie2Quals.BEFORE_1_3);
+				}
 			}
 		}
 
@@ -100,6 +128,7 @@ public class NonDirectionalAnalysisTest {
 							true,
 							false,
 							false,
+							false,
 							true,
 							1,
 							0.01,
@@ -126,10 +155,16 @@ public class NonDirectionalAnalysisTest {
 					System.err.println(Utils.readFile(ma.getSummaryFile(reference, sample)));
 					System.err.println("===========================");
 
+					if (bowtieVersion == 2) {
+						Assert.assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("CG: 7/16") !=
+								-1);
+					} else {
+						Assert.assertTrue(Utils.readFile(ma.getSummaryFile(reference, sample)).indexOf("CG: 13/24") != -1);
+					}
 				}
 			}
 		} finally {
-			//	Utils.deleteDirOnJVMExit(project.getProjectDirectory());
+			Utils.deleteDirOnJVMExit(project.getProjectDirectory());
 		}
 	}
 

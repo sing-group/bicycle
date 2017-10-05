@@ -100,6 +100,7 @@ public class MethylationAnalysis {
 											 boolean trimreads,
 											 int trimuntil,
 											 boolean removeAmbiguous,
+											 boolean onlyWithOneAlignment,
 											 boolean removeBad,
 											 boolean removeClonal,
 											 boolean correctNonCG,
@@ -108,7 +109,9 @@ public class MethylationAnalysis {
 											 int nThreads,
 											 List<File> bedFiles) throws IOException, InterruptedException {
 
-		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG,
+		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, onlyWithOneAlignment, removeBad,
+				removeClonal,
+				correctNonCG,
 				mindepth, fdr, nThreads, ErrorRateMode.from_barcodes, "", 0d, 0d, bedFiles);
 	}
 
@@ -117,6 +120,7 @@ public class MethylationAnalysis {
 												  boolean trimreads,
 												  int trimuntil,
 												  boolean removeAmbiguous,
+												  boolean onlyWithOneAlignment,
 												  boolean removeBad,
 												  boolean removeClonal,
 												  boolean correctNonCG,
@@ -126,7 +130,9 @@ public class MethylationAnalysis {
 												  List<File> bedFiles,
 												  String controlGenome) throws IOException, InterruptedException {
 
-		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG,
+		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, onlyWithOneAlignment, removeBad,
+				removeClonal,
+				correctNonCG,
 				mindepth, fdr, nThreads, ErrorRateMode.from_control_genome, controlGenome, 0d, 0d, bedFiles);
 	}
 
@@ -135,6 +141,7 @@ public class MethylationAnalysis {
 										  boolean trimreads,
 										  int trimuntil,
 										  boolean removeAmbiguous,
+										  boolean onlyWithOneAlignment,
 										  boolean removeBad,
 										  boolean removeClonal,
 										  boolean correctNonCG,
@@ -145,7 +152,8 @@ public class MethylationAnalysis {
 										  double watsonError, double crickError) throws IOException,
 			InterruptedException {
 
-		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad, removeClonal, correctNonCG,
+		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, onlyWithOneAlignment, removeBad,
+				removeClonal, correctNonCG,
 				mindepth, fdr, nThreads, ErrorRateMode.FIXED, "", watsonError, crickError, bedFiles);
 
 	}
@@ -155,6 +163,7 @@ public class MethylationAnalysis {
 						 boolean trimreads,
 						 int trimuntil,
 						 boolean removeAmbiguous,
+						 boolean onlyWithOneAlignment,
 						 boolean removeBad,
 						 boolean removeClonal,
 						 boolean correctNonCG,
@@ -167,7 +176,8 @@ public class MethylationAnalysis {
 						 double crickError,
 						 List<File> bedFiles) throws IOException, InterruptedException {
 
-		final String command = prepareGATKCommand(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad,
+		final String command = prepareGATKCommand(reference, sample, trimreads, trimuntil, removeAmbiguous,
+				onlyWithOneAlignment, removeBad,
 				removeClonal, correctNonCG, mindepth, fdr, nThreads, errorMode, controlGenome, watsonError,
 				crickError, bedFiles);
 
@@ -227,7 +237,8 @@ public class MethylationAnalysis {
 	}
 
 	private String prepareGATKCommand(Reference reference, Sample sample, boolean trimreads, int trimuntil,
-									  boolean removeAmbiguous, boolean removeBad, boolean removeClonal, boolean
+									  boolean removeAmbiguous, boolean onlyWithOneAlignment, boolean removeBad, boolean
+											  removeClonal, boolean
 											  correctNonCG, int mindepth,
 									  double fdr, int nThreads, ErrorRateMode errorMode, String controlGenome, double
 											  watsonError,
@@ -301,11 +312,17 @@ public class MethylationAnalysis {
 		if (removeAmbiguous) {
 			command += " --removeambiguous";
 		}
+
 		if (trimreads) {
 			command += " --trimuntil " + trimuntil;
 		}
+
 		if (removeBad) {
 			command += " --removebad";
+		}
+
+		if (onlyWithOneAlignment) {
+			command += " --onlywithonealignment";
 		}
 
 		return command;

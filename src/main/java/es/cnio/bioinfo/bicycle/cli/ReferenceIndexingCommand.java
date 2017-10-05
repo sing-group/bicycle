@@ -43,17 +43,30 @@ public class ReferenceIndexingCommand extends ProjectCommand {
 	@Override
 	public void executeImpl(CLIApplication app, Project project, Map<Option, String> parameters) throws Exception {
 
-
 		BowtieAlignment al = new BowtieAlignment(project);
 
+		int v = Integer.parseInt(parameters.get(this.findOption("v")));
+		if (v != 1 && v != 2) {
+			throw new IllegalArgumentException("bowtie version must be 1 or 2");
+		}
+
 		for (Reference ref : project.getReferences()) {
-			al.buildBowtieIndex(ref);
+			if (v == 1) {
+				al.buildBowtieIndex(ref);
+			} else { //bowtie 2
+				al.buildBowtie2Index(ref);
+			}
 		}
 	}
 
 	@Override
 	protected List<Option> createOptions() {
 		List<Option> toret = super.createOptions();
+
+		toret.add(new DefaultValuedOption("bowtie-version", "v",
+				"bowtie version to use (valid options are 1 or 2)"
+				, "2"));
+
 		return toret;
 	}
 

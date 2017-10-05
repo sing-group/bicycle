@@ -51,10 +51,11 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 		int nThreads = Integer.parseInt(parameters.get(this.findOption("n")));
 		boolean removeBad = parameters.containsKey(this.findOption("r"));
 		boolean removeAmbiguous = parameters.containsKey(this.findOption("a"));
+		boolean onlyWithOneAlignment = parameters.containsKey(this.findOption("o"));
 		boolean removeClonal = parameters.containsKey(this.findOption("c"));
 		boolean correctNonCG = parameters.containsKey(this.findOption("g"));
 		int trimuntil = Integer.parseInt(parameters.get(this.findOption("t")));
-		boolean trimreads = trimuntil != -1;
+		boolean trimreads = trimuntil != 0;
 		int mindepth = Integer.parseInt(parameters.get(this.findOption("d")));
 
 		double fdr = Double.parseDouble(parameters.get(this.findOption("f")));
@@ -94,7 +95,8 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 			for (Sample sample : project.getSamples()) {
 				for (Reference reference : project.getReferences()) {
 					ma.analyzeWithErrorFromControlGenome(reference, sample, trimreads, trimuntil, removeAmbiguous,
-							removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, controlGenome);
+							onlyWithOneAlignment, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads,
+							bedFiles, controlGenome);
 				}
 			}
 
@@ -113,7 +115,8 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 
 			for (Sample sample : project.getSamples()) {
 				for (Reference reference : project.getReferences()) {
-					ma.analyzeWithFixedErrorRate(reference, sample, trimreads, trimuntil, removeAmbiguous, removeBad,
+					ma.analyzeWithFixedErrorRate(reference, sample, trimreads, trimuntil, removeAmbiguous,
+							onlyWithOneAlignment, removeBad,
 							removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, watsonError, crickError);
 				}
 			}
@@ -121,10 +124,10 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 			for (Sample sample : project.getSamples()) {
 				for (Reference reference : project.getReferences()) {
 					ma.analyzeWithErrorFromBarcodes(reference, sample, trimreads, trimuntil, removeAmbiguous,
-							removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles);
+							onlyWithOneAlignment, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads,
+							bedFiles);
 				}
 			}
-
 		}
 	}
 
@@ -140,9 +143,10 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 
 		toret.add(new Option("remove-ambiguous", "a",
 				"ignore reads aligned to both Watson and Crick strands", true, false));
-
+		toret.add(new Option("only-with-one-alignment", "o",
+				"ignore reads with more than one possible alignment", true, false));
 		toret.add(new DefaultValuedOption("trim-reads", "t",
-				"Trim reads to the <t> mismatch. -1 means no trim", "4"));
+				"Trim reads to the <t> mismatch. 0 means no trim", "4"));
 
 		toret.add(new DefaultValuedOption("min-depth", "d",
 				"Ignore positions with less than <d> reads", "1"));

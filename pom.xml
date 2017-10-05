@@ -8,6 +8,7 @@
 	<description>bicycle (bisulfite-based methylcytosine caller) is a next-generation sequencing bioinformatics pipeline able to perform a full DNA methylation level analysis. More info at the [bicycle](http://sing.ei.uvigo.es/bicycle) project page.</description>
 
 	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<apache.math.version>3.6</apache.math.version>
@@ -182,6 +183,7 @@
 					<systemPropertyVariables>
 						<java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
 						<bowtie.path>${bowtie.path}</bowtie.path>
+						<bowtie2.path>${bowtie2.path}</bowtie2.path>
 						<samtools.path>${samtools.path}</samtools.path>
 					</systemPropertyVariables>
 					<useSystemClassLoader>false</useSystemClassLoader>
@@ -208,7 +210,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
+			<!--<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.5</version>
@@ -223,19 +225,21 @@
 						<exclude>**/testsimulated/*Test.java</exclude>
 					</excludes>
 				</configuration>
-			</plugin>
-			<plugin>
+			</plugin>-->
+			<!--<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>2.3.1</version>
 				<configuration>
 					<outputDirectory>${dist.directory}</outputDirectory>
 				</configuration>
-			</plugin>
+			</plugin>-->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3.1</version>
 				<configuration>
+					<outputDirectory>${dist.directory}</outputDirectory>
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
@@ -279,10 +283,10 @@
 						</goals>
 						<configuration>
 							<skip>${skipSimulatedTests}</skip>
-							<url>http://sing.ei.uvigo.es/bicycle/downloads/sample-test-data-1.5.zip</url>
+							<url>http://sing.ei.uvigo.es/bicycle/downloads/sample-test-data-1.6.zip</url>
 							<unpack>true</unpack>
 							<outputDirectory>${project.build.directory}/test-classes</outputDirectory>
-							<md5>57eee2ba5f0c5ca120c1060366039fad</md5>
+							<md5>7094bbab8a42a2b98ece343872a8c2be</md5>
 						</configuration>
 					</execution>
 				</executions>

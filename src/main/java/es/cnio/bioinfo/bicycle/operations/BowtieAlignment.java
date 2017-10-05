@@ -21,6 +21,8 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 
 package es.cnio.bioinfo.bicycle.operations;
 
+import static java.lang.Math.max;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -31,6 +33,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,9 +42,11 @@ import es.cnio.bioinfo.bicycle.FastqSplitter;
 import es.cnio.bioinfo.bicycle.Project;
 import es.cnio.bioinfo.bicycle.Reference;
 import es.cnio.bioinfo.bicycle.Sample;
+import es.cnio.bioinfo.bicycle.StandardStreamsToLoggerRedirector;
 import es.cnio.bioinfo.bicycle.Tools;
 
 public class BowtieAlignment {
+
 	public enum PairedEndOrientation {
 		FR("--fr"), FF("--ff"), RF("--rf");
 		private String bowtieParameter;
@@ -64,17 +69,91 @@ public class BowtieAlignment {
 
 	private Project project;
 
-	public enum Quals {
-		AFTER_1_3("--solexa1.3-quals"), BEFORE_1_3("--solexa-quals"), PHRED_33("--phred33-quals");
+	public enum Bowtie1Quals {
+		AFTER_1_3("--solexa1.3-quals", "solexa1.3"),
+		BEFORE_1_3("--solexa-quals", "solexa"),
+		PHRED_33("--phred33-quals", "phred33"),
+		PHRED_64("--phred64-quals", "phred64"),
+		INTEGER("--integer-quals", "integer");
 
-		private String parameterValue;
+		private final String bicycleParameterValue;
+		private final String parameterValue;
 
-		private Quals(String parameterValue) {
+		Bowtie1Quals(String parameterValue, String bicycleParameterValue) {
+
 			this.parameterValue = parameterValue;
+			this.bicycleParameterValue = bicycleParameterValue;
 		}
 
 		public String getParameterValue() {
 			return parameterValue;
+		}
+
+		public static Bowtie1Quals parseQuals(String qualsString) {
+			for (Bowtie1Quals qualityValue : Bowtie1Quals.values()) {
+				if (qualityValue.bicycleParameterValue.equalsIgnoreCase(qualsString)) {
+					return qualityValue;
+				}
+			}
+			throw new IllegalArgumentException("invalid qualities parameter: " + qualsString);
+		}
+	}
+
+	public enum Bowtie2Quals {
+		BEFORE_1_3("--solexa-quals", "solexa"),
+		PHRED64("--phred64", "phred64"),
+		PHRED_33("--phred33", "phred33"),
+		INT_QUALS("--int-quals", "int");
+
+		private final String bicycleParameterValue;
+		private final String parameterValue;
+
+		Bowtie2Quals(String parameterValue, String bicycleParameterValue) {
+
+			this.parameterValue = parameterValue;
+			this.bicycleParameterValue = bicycleParameterValue;
+		}
+
+		public String getParameterValue() {
+			return parameterValue;
+		}
+
+		public static Bowtie2Quals parseQuals(String qualsString) {
+			for (Bowtie2Quals qualityValue : Bowtie2Quals.values()) {
+				if (qualityValue.bicycleParameterValue.equalsIgnoreCase(qualsString)) {
+					return qualityValue;
+				}
+			}
+			throw new IllegalArgumentException("invalid qualities parameter: " + qualsString);
+		}
+	}
+
+	interface AlignmentScoreFunction {
+		int getScore(String SAMLine);
+	}
+
+	private static class Bowtie2ScoreFunction implements AlignmentScoreFunction {
+		// AS: Alignment score (bowtie 2)
+		Pattern scorePattern = Pattern.compile("\\tAS:i:([^\\n\\t]+)");
+
+		@Override
+		public int getScore(String SAMLine) {
+			Matcher matcher = scorePattern.matcher(SAMLine);
+			matcher.find();
+			return Integer.parseInt(matcher.group(1));
+		}
+	}
+
+	private static class Bowtie1ScoreFunction implements AlignmentScoreFunction {
+
+		// NM: edit distance (bowtie 1). The greater the worse, so the score is inverted
+		Pattern scorePattern = Pattern.compile("\\tNM:i:([^\\n\\t]+)");
+
+		@Override
+		public int getScore(String SAMLine) {
+			Matcher matcher = scorePattern.matcher(SAMLine);
+			matcher.find();
+			return -1 * Integer.parseInt(matcher.group(1));
 		}
 	}
 
@@ -84,6 +163,14 @@ public class BowtieAlignment {
 
 
 	public void buildBowtieIndex(Reference reference) throws IOException {
+		buildBowtieIndex(reference, 1);
+	}
+
+	public void buildBowtie2Index(Reference reference) {
+		buildBowtieIndex(reference, 2);
+	}
+
+	private void buildBowtieIndex(Reference reference, int bowtieVersion) {
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(this.project);
 
 
@@ -91,43 +178,76 @@ public class BowtieAlignment {
 		File bisulfitedReferenceGA = rb.getBisulfitedReference(ReferenceBisulfitation.Replacement.GA, reference);
 
 		if (!bisulfitedReferenceCT.exists()) {
-			throw new IllegalArgumentException("Reference CtoT bisulfitation " + bisulfitedReferenceCT + " could not " +
+			throw new IllegalArgumentException("Reference CtoT bisulfitation " + bisulfitedReferenceCT + " could not" +
+					" " +
 					"be found. Please, perform reference in-silico bisulfitation first");
 		}
 
 		if (!bisulfitedReferenceGA.exists()) {
-			throw new IllegalArgumentException("Reference GtoA bisulfitation " + bisulfitedReferenceGA + " could not " +
+			throw new IllegalArgumentException("Reference GtoA bisulfitation " + bisulfitedReferenceGA + " could not" +
+					" " +
 					"be found. Please, perform reference in-silico bisulfitation first");
 		}
-		buildBowtieIndex(bisulfitedReferenceCT);
+		buildBowtieIndex(bisulfitedReferenceCT, bowtieVersion);
 
-		buildBowtieIndex(bisulfitedReferenceGA);
-
-
+		buildBowtieIndex(bisulfitedReferenceGA, bowtieVersion);
 	}
 
-	private void buildBowtieIndex(File bisulfitedReference) {
+	private void buildBowtieIndex(File bisulfitedReference, int bowtieVersion) {
 		logger.info("Building Bowtie index for " + bisulfitedReference.toString().replaceAll(project
 				.getWorkingDirectory() + File.separator, Project.WORKING_DIRECTORY));
 
-		String bowtieBuildPath = (this.project.getBowtieDirectory() != null ? this.project.getBowtieDirectory()
-				.getAbsolutePath() + File
-				.separator : "") + "bowtie-build";
+		String bowtieBuildPath = "";
+
+		if (bowtieVersion == 1) {
+			bowtieBuildPath = (this.project.getBowtieDirectory() != null ? this.project.getBowtieDirectory()
+					.getAbsolutePath() + File
+					.separator : "") + "bowtie-build";
+		} else {
+			bowtieBuildPath = (this.project.getBowtie2Directory() != null ? this.project.getBowtie2Directory()
+					.getAbsolutePath() + File
+					.separator : "") + "bowtie2-build";
+		}
+
 
 		String[] command = new String[]{bowtieBuildPath, bisulfitedReference.getAbsolutePath(), bisulfitedReference
 				.getAbsolutePath()};
 
-		int result = Tools.executeProcessWait(command, null, null);
+		StandardStreamsToLoggerRedirector redirector = new StandardStreamsToLoggerRedirector(logger, Level.INFO,
+				new StandardStreamsToLoggerRedirector.MessageFilter() {
 
-		if (result == 0) logger.info("Bowtie index build OK");
-		else {
-			String commandString = "";
+					@Override
+					public String filter(String msg) {
+						return "[bowtie-build]: " + msg;
+					}
+				},
+				logger, Level.INFO,
+				new StandardStreamsToLoggerRedirector.MessageFilter() {
 
-			for (int j = 0; j < command.length; j++)
-				commandString += command[j] + " ";
+					@Override
+					public String filter(String msg) {
+						return "[bowtie-build]: " + msg;
+					}
+				}
+		);
+		redirector.redirectStreams();
 
-			throw new RuntimeException("Error during bowtie index build. Command was: " + commandString);
+		try {
+			int result = Tools.executeProcessWait(command, System.out, System.err);
+			if (result == 0) logger.info("Bowtie index build OK");
+			else {
+				String commandString = "";
+
+				for (int j = 0; j < command.length; j++)
+					commandString += command[j] + " ";
+
+				throw new RuntimeException("Error during bowtie index build. Command was: " + commandString);
+			}
+		} finally {
+			redirector.restoreStreams();
 		}
+
+
 	}
 
 	public File getAlignmentOutputFile(Strand strand, Sample s, Reference r) {
@@ -135,24 +255,277 @@ public class BowtieAlignment {
 				"_against_" + r.getReferenceFile().getName() + "_" + strand.name() + ".sam");
 	}
 
-	public void performBowtieAlignment(
-			final Sample sample,
-			final Reference reference,
-			boolean skipUnconverted,
-			int threadsNumber,
-			
-			/* bowtie params */
-			final int e,
-			final int l,
-			final int n,
-
-
-			final int chunkmbs,
-			final Quals solexaQ) throws IOException {
-		performBowtieAlignment(sample, reference, skipUnconverted, threadsNumber, e, l, n, chunkmbs, solexaQ, 0, 250);
+	private interface BowtieCommandCreator {
+		String[] getCommand(File reference, Sample sample, Strand strand, boolean nohead);
 	}
 
-	public void performBowtieAlignment(
+	private class Bowtie1CommandCreator implements BowtieCommandCreator {
+
+		private int e, l, n, chunkmbs, I, X;
+		private Bowtie1Quals solexaQ;
+
+		Bowtie1CommandCreator(/* bowtie params */
+							  final int e,
+							  final int l,
+							  final int n,
+
+
+							  final int chunkmbs,
+							  final Bowtie1Quals solexaQ,
+
+				/*bowtie paired-end parameters*/
+							  final int I,
+							  final int X) {
+			this.e = e;
+			this.l = l;
+			this.n = n;
+			this.chunkmbs = chunkmbs;
+			this.solexaQ = solexaQ;
+			this.I = I;
+			this.X = X;
+		}
+
+		@Override
+		public String[] getCommand(File reference, Sample sample, Strand strand, boolean nohead) {
+			String[] command = null;
+
+			String bowtiePath = (sample.getProject().getBowtieDirectory() != null ? sample.getProject()
+					.getBowtieDirectory().getAbsolutePath() + File
+					.separator : "") + "bowtie";
+			final int M = 1; // tag if there are more than one possible alignment with XM:i:>2
+			final int k = 1; // report only 1 alignment. This is mandatory in order to postprocessing works
+
+			if (!sample.isPaired()) {
+				if (nohead) {
+					command = new String[]{
+							bowtiePath,
+							"-t",
+							"--chunkmbs", "" + chunkmbs,
+							"--mm",
+							solexaQ.getParameterValue(),
+							"-e", "" + e,
+							"-l", "" + l,
+							"-n", "" + n,
+							"-k", "" + k,
+							"-M", "" + M,
+							"--best",
+							"-S",
+							"--sam-nohead",
+							"--sam-RG", "ID:" + strand.name(),
+							"--sam-RG", "SM:" + strand.name(),
+							"--nomaqround",
+							reference.getAbsolutePath(),
+							"-"};
+				} else {
+					command = new String[]{
+							bowtiePath,
+							"-t",
+							"--chunkmbs", "" + chunkmbs,
+							solexaQ.getParameterValue(),
+							"-e", "" + e,
+							"-l", "" + l,
+							"-n", "" + n,
+							"-k", "" + k,
+							"-M", "" + M,
+							"--best",
+							"-S",
+							"--sam-RG", "ID:" + strand.name(),
+							"--sam-RG", "SM:" + strand.name(),
+							"--nomaqround",
+							reference.getAbsolutePath(),
+							"-"};
+				}
+			} else { //paired
+				if (nohead) {
+					command = new String[]{
+							bowtiePath,
+							"-t",
+							"--chunkmbs", "" + chunkmbs,
+							"--mm", solexaQ.getParameterValue(),
+							"-e", "" + e,
+							"-l", "" + l,
+							"-n", "" + n,
+							"-k", "" + k,
+							"-M", "" + M,
+							"--best",
+							"-S",
+							"--sam-nohead",
+							"--sam-RG", "ID:" + strand.name(),
+							"--sam-RG", "SM:" + strand.name(),
+							"--nomaqround",
+							reference.getAbsolutePath(),
+							"-I", "" + I,
+							"-X", "" + X,
+							"--fr",
+							"--12", "-"};
+				} else {
+					command = new String[]{
+							bowtiePath,
+							"-t",
+							"--chunkmbs", "" + chunkmbs,
+							solexaQ.getParameterValue(),
+							"-e", "" + e,
+							"-l", "" + l,
+							"-n", "" + n,
+							"-k", "" + k,
+							"-M", "" + M,
+							"--best",
+							"-S",
+							"--sam-RG", "ID:" + strand.name(),
+							"--sam-RG", "SM:" + strand.name(),
+							"--nomaqround", reference.getAbsolutePath(),
+							"-I", "" + I,
+							"-X", "" + X,
+							"--fr",
+							"--12", "-"};
+				}
+			}
+			return command;
+		}
+	}
+
+	private class Bowtie2CommandCreator implements BowtieCommandCreator {
+
+		private final boolean local;
+		private final String i;
+		private final int R;
+		private final String sm;
+		private int L, N, I, X, D;
+		private Bowtie2Quals quals;
+
+		Bowtie2CommandCreator(/* bowtie params */
+							  final boolean local,
+							  final int D,
+							  final int R,
+							  final int L,
+							  final String i,
+							  final String sm,
+							  final int N,
+							  final Bowtie2Quals quals,
+
+			/*bowtie paired-end parameters*/
+							  final int I,
+							  final int X) {
+			this.local = local;
+			this.D = D;
+			this.R = R;
+			this.L = L;
+			this.i = i;
+			this.sm = sm;
+			this.N = N;
+			this.quals = quals;
+			this.I = I;
+			this.X = X;
+		}
+
+		@Override
+		public String[] getCommand(File reference, Sample sample, Strand strand, boolean nohead) {
+			String[] command = null;
+
+			String bowtiePath = (sample.getProject().getBowtie2Directory() != null ? sample.getProject()
+					.getBowtie2Directory().getAbsolutePath() + File
+					.separator : "") + "bowtie2";
+
+			// Where is k option? Bowtie 2, by default reports only (the best) alignment for a read. If more than one
+			// alignment is possible, the XS tag will be present. If we want to use -k option, it is mandatory that it
+			// must be equal to 1. If not, multiple alignments may be reported and this is not supported by our
+			// postprocessing step. We discard the use of -k by now (in fact, in bowtie2 this option is not used in
+			// any of their presets)
+
+			if (!sample.isPaired()) {
+				if (nohead) {
+					command = new String[]{
+							bowtiePath,
+							"-t",
+							"--mm",
+							local ? "--local" : "",
+							"--no-discordant",
+							"--no-mixed",
+							quals.getParameterValue(),
+							"-D", "" + D,
+							"-R", "" + R,
+							"-L", "" + L,
+							"-i", "" + i,
+							"-i", "" + i,
+							"--score-min", "" + sm,
+							"-N", "" + N,
+							"--no-hd",
+							"--rg-id", strand.name(),
+							"--rg", "SM:" + strand.name(),
+							"--sam-no-qname-trunc",
+							"-x", reference.getAbsolutePath(),
+							"-U", "-"};
+				} else {
+					command = new String[]{
+							bowtiePath,
+							"-t",
+							local ? "--local" : "",
+							"--no-discordant",
+							"--no-mixed",
+							quals.getParameterValue(),
+							"-D", "" + D,
+							"-R", "" + R,
+							"-L", "" + L,
+							"-i", "" + i,
+							"--score-min", "" + sm,
+							"-N", "" + N,
+							"--rg-id", strand.name(),
+							"--rg", "SM:" + strand.name(),
+							"-x", reference.getAbsolutePath(),
+							"-U", "-"};
+				}
+			} else { //paired
+				if (nohead) {
+					command = new String[]{
+							bowtiePath, "-t",
+							"--mm",
+							local ? "--local" : "",
+							"--no-discordant",
+							"--no-mixed",
+							quals.getParameterValue(),
+							"-D", "" + D,
+							"-R", "" + R,
+							"-L", "" + L,
+							"-i", "" + i,
+							"--score-min", "" + sm,
+							"-N", "" + N,
+							"--no-hd",
+							"--rg-id", strand.name(),
+							"--rg", "SM:" + strand.name(),
+							"--sam-no-qname-trunc",
+							"-x", reference.getAbsolutePath(),
+							"-I", "" + I,
+							"-X", "" + X,
+							"--fr",
+							"--tab5",
+							"-"};
+				} else {
+					command = new String[]{bowtiePath,
+							"-t", local ? "--local" : "",
+							"--no-discordant",
+							"--no-mixed",
+							quals.getParameterValue(),
+							"-D", "" + D,
+							"-R", "" + R,
+							"-L", "" + L,
+							"-i", "" + i,
+							"--score-min", "" + sm,
+							"-N", "" + N,
+							"--rg-id", strand.name(),
+							"--rg", "SM:" + strand.name(),
+							"-x", reference.getAbsolutePath(),
+							"-I", "" + I,
+							"-X", "" + X,
+							"--fr",
+							"--tab5",
+							"-"};
+				}
+			}
+			return command;
+		}
+	}
+
+	public void performBowtie1Alignment(
 			final Sample sample,
 			final Reference reference,
 			boolean skipUnconverted,
@@ -165,16 +538,94 @@ public class BowtieAlignment {
 
 
 			final int chunkmbs,
-			final Quals solexaQ,
-			
+			final Bowtie1Quals solexaQ) throws IOException {
+		performBowtie1Alignment(sample, reference, skipUnconverted, threadsNumber, e, l, n, chunkmbs, solexaQ, 0, 250);
+	}
+
+
+	public void performBowtie1Alignment(final Sample sample,
+										final Reference reference,
+										boolean skipUnconverted,
+										int threadsNumber,
+
+			/* bowtie params */
+										final int e,
+										final int l,
+										final int n,
+
+
+										final int chunkmbs,
+										final Bowtie1Quals solexaQ,
+
 			/*bowtie paired-end parameters*/
-			final int I,
-			final int X) throws IOException {
+										final int I,
+										final int X) throws IOException {
+
+		Bowtie1CommandCreator commandCreator = new Bowtie1CommandCreator(e, l, n, chunkmbs, solexaQ, I, X);
+
+
+		performBowtieAlignment(sample, reference, skipUnconverted, threadsNumber, commandCreator, new
+				Bowtie1ScoreFunction());
+	}
+
+	public void performBowtie2Alignment(final Sample sample,
+										final Reference reference,
+										boolean skipUnconverted,
+										int threadsNumber,
+
+			/* bowtie 2 params */
+										final boolean local,
+										final int D,
+										final int R,
+										final int L,
+										final String i,
+										final String sm,
+										final int N,
+										final Bowtie2Quals quals) throws IOException {
+
+		Bowtie2CommandCreator commandCreator = new Bowtie2CommandCreator(local, D, R, L, i, sm, N, quals, 0, 250);
+
+
+		performBowtieAlignment(sample, reference, skipUnconverted, threadsNumber, commandCreator, new
+				Bowtie2ScoreFunction());
+	}
+
+	public void performBowtie2Alignment(final Sample sample,
+										final Reference reference,
+										boolean skipUnconverted,
+										int threadsNumber,
+
+			/* bowtie 2 params */
+										final boolean local,
+										final int D,
+										final int R,
+										final int L,
+										final String i,
+										final String sm,
+										final int N,
+										final Bowtie2Quals quals,
+
+		/*bowtie paired-end parameters*/
+										final int I,
+										final int X) throws IOException {
+
+		Bowtie2CommandCreator commandCreator = new Bowtie2CommandCreator(local, D, R, L, i, sm, N, quals, I, X);
+
+		// AS: Alignment score (bowtie 2)
+		performBowtieAlignment(sample, reference, skipUnconverted, threadsNumber, commandCreator, new
+				Bowtie2ScoreFunction());
+	}
+
+	private void performBowtieAlignment(
+			final Sample sample,
+			final Reference reference,
+			boolean skipUnconverted,
+			int threadsNumber,
+			BowtieCommandCreator commandCreator, AlignmentScoreFunction scoreFunction) throws IOException {
 
 		logger.info("Peforming alignment of sample " + sample.getName() + " against " + reference.getReferenceFile()
 				.toString().replaceAll(project.getReferenceDirectory() + File.separator, ""));
-		final int M = 1; //tag if there are more than one possible alignment with XM:i:>2
-		final int k = 1; //report only 1 alignment
+
 
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(this.project);
 
@@ -276,6 +727,8 @@ public class BowtieAlignment {
 			}
 
 			public void run() {
+
+
 				logger.info("Aligning " +
 						sample.getReadsFiles().toString().replaceAll(project.getReadsDirectory().toString() + File
 								.separator, "")
@@ -285,39 +738,7 @@ public class BowtieAlignment {
 						+ "]...... " +
 						"(see .log file)...... ");
 
-				String[] command = null;
-
-				String bowtiePath = (sample.getProject().getBowtieDirectory() != null ? sample.getProject()
-						.getBowtieDirectory().getAbsolutePath() + File
-						.separator : "") + "bowtie";
-				if (!sample.isPaired()) {
-					if (nohead) {
-						command = new String[]{bowtiePath, "-t", "--chunkmbs", "" + chunkmbs, "--mm", solexaQ
-								.getParameterValue
-								(), "-e", "" + e, "-l", "" + l, "-n", "" + n, "-k", "" + k, "-M", "" + M, "-S",
-								"--sam-nohead", "--sam-RG", "ID:" + strand.name(), "--sam-RG", "SM:" + strand.name(),
-								"--best", "--nomaqround", ref.getAbsolutePath(), "-"};
-					} else {
-						command = new String[]{bowtiePath, "-t", "--chunkmbs", "" + chunkmbs, solexaQ
-								.getParameterValue(), "-e", "" + e, "-l", "" + l, "-n", "" + n, "-k", "" + k, "-M", ""
-								+ M, "-S", "--best", "--sam-RG", "ID:" + strand.name(), "--sam-RG", "SM:" + strand
-								.name(), "--nomaqround", ref.getAbsolutePath(), "-"};
-					}
-				} else { //paired
-					if (nohead) {
-						command = new String[]{bowtiePath, "-t", "--chunkmbs", "" + chunkmbs, "--mm", solexaQ
-								.getParameterValue(), "-e", "" + e, "-l", "" + l, "-n", "" + n, "-k", "" + k, "-M", ""
-								+ M, "-S", "--sam-nohead", "--sam-RG", "ID:" + strand.name(), "--sam-RG", "SM:" +
-								strand.name(), "--best", "--nomaqround", ref.getAbsolutePath(), "-I", "" + I, "-X", ""
-								+ X, "--fr", "--12", "-"};
-					} else {
-						command = new String[]{bowtiePath, "-t", "--chunkmbs", "" + chunkmbs, solexaQ
-								.getParameterValue(), "-e", "" + e, "-l", "" + l, "-n", "" + n, "-k", "" + k, "-M", ""
-								+ M, "-S", "--best", "--sam-RG", "ID:" + strand.name(), "--sam-RG", "SM:" + strand
-								.name(), "--nomaqround", ref.getAbsolutePath(), "-I", "" + I, "-X", "" + X, "--fr",
-								"--12", "-"};
-					}
-				}
+				String[] command = commandCreator.getCommand(ref, sample, strand, nohead);
 
 
 				String outFile = logFileName;
@@ -339,7 +760,8 @@ public class BowtieAlignment {
 
 							String readsLine = null;
 							logger.info("Start read feeding to alignment against " + ref.toString().replaceAll(project
-									.getWorkingDirectory() + File.separator, Project.WORKING_DIRECTORY) + ". Log file:" +
+									.getWorkingDirectory() + File.separator, Project.WORKING_DIRECTORY) + ". Log " +
+									"file:" +
 									" " +
 									"" + logFileName
 									.replaceAll
@@ -354,7 +776,7 @@ public class BowtieAlignment {
 
 								logger.info("Finished read feeding to alignment against " + ref.toString().replaceAll
 										(project
-										.getWorkingDirectory() + File.separator, Project.WORKING_DIRECTORY));
+												.getWorkingDirectory() + File.separator, Project.WORKING_DIRECTORY));
 							} catch (Exception e) {
 								throw new RuntimeException(e);
 							}
@@ -383,6 +805,7 @@ public class BowtieAlignment {
 		final PrintStream outGA = new PrintStream(new FileOutputStream(alignmentOutputFileGA));
 
 		class AlignerPostprocessor {
+			private final AlignmentScoreFunction scoreFunction;
 			private int id;
 			private String CTLine = null;
 			private String GALine = null;
@@ -393,8 +816,11 @@ public class BowtieAlignment {
 			StringBuilder outputBufferCT = new StringBuilder(100000);
 			StringBuilder outputBufferGA = new StringBuilder(100000);
 
-			public AlignerPostprocessor(int id) {
+			private Pattern scorePattern;
+
+			public AlignerPostprocessor(int id, AlignmentScoreFunction scoreFunction) {
 				this.id = id;
+				this.scoreFunction = scoreFunction;
 			}
 
 			public void close() {
@@ -403,22 +829,34 @@ public class BowtieAlignment {
 
 			}
 
+			// for single-end
 			private String directionalPreviousLineCT;
+			private boolean directionalPreviousLineCTWasAligned;
 			private String directionalPreviousLineGA;
+			private boolean directionalPreviousLineGAWasAligned;
+			private int directionalScore = Integer.MIN_VALUE;
 
-			private int previousEditDistance = -1;
 
-			private int previousEditDistanceMate1 = -1;
-			private int previousEditDistanceMate2 = -1;
-			private int nonDirectionalPreviousEditDistanceMate1 = -1;
+			// in paired-end
+			private int previousScoreMate1 = Integer.MIN_VALUE;
+			private int previousScoreMate2 = Integer.MIN_VALUE;
+			private int nonDirectionalPreviousScoreMate1 = Integer.MIN_VALUE;
 			private String directionalPreviousLineCTMate1;
+			private boolean directionalPreviousLineCTMate1WasAligned;
 			private String directionalPreviousLineGAMate1;
+			private boolean directionalPreviousLineGAMate1WasAligned;
 			private String directionalPreviousLineCTMate2;
+			private boolean directionalPreviousLineCTMate2WasAligned;
 			private String directionalPreviousLineGAMate2;
+			private boolean directionalPreviousLineGAMate2WasAligned;
 			private String nonDirectionalPreviousLineCTMate1;
+			private boolean nonDirectionalPreviousLineCTMate1WasAligned;
 			private String nonDirectionalPreviousLineGAMate1;
+			private boolean nonDirectionalPreviousLineGAMate1WasAligned;
+			// in both PE and SE
+			private boolean directionalWasAmbiguous = false;
+			private boolean nonDirectionalIsAmbiguous = false;
 
-			private Pattern editDistancePattern = Pattern.compile("\\tNM:i:([^\\n\\t]+)");
 
 			public void merge() {
 
@@ -445,166 +883,19 @@ public class BowtieAlignment {
 					}
 
 					if (!tokensCT[5].equals("*") && !tokensGA[5].equals("*")) {
-						//adding a flag to sam indicating that this is ambiguous. Also add RG (mandatory in gatk)
 						ambiguous = true;
 						tagCount++;
 					}
 
 					if (sample.isDirectional()) {
-						if (ambiguous) {
-							outputBufferCT.append(CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON.name() + "\n");
-							outputBufferGA.append(GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name() + "\n");
-						} else {
-							outputBufferCT.append(CTLine + "\tRG:Z:" + Strand.WATSON.name() + "\n");
-							outputBufferGA.append(GALine + "\tRG:Z:" + Strand.CRICK.name() + "\n");
-						}
+						mergeDirectionalSAMLines(ambiguous);
 					} else {
-						//get edit distance
-						int currentEditDistance = -1;
-						if (!tokensCT[5].equals("*")) {
-							Matcher matcher = editDistancePattern.matcher(CTLine);
-							matcher.find();
-							currentEditDistance = Integer.parseInt(matcher.group(1));
-						}
-
-
-						if (!tokensGA[5].equals("*")) {
-							Matcher matcher = editDistancePattern.matcher(GALine);
-							matcher.find();
-							int GAEditDistance = Integer.parseInt(matcher.group(1));
-							if (GAEditDistance < currentEditDistance || currentEditDistance == -1) {
-								currentEditDistance = GAEditDistance;
-							}
-						}
-
-
-						if (sample.isPaired()) {
-							if (directionalPreviousLineCTMate1 == null) {
-								if (ambiguous) {
-									directionalPreviousLineCTMate1 = CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON.name()
-											+ "\n";
-									directionalPreviousLineGAMate1 = GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name()
-											+ "\n";
-								} else {
-									directionalPreviousLineCTMate1 = CTLine + "\tRG:Z:" + Strand.WATSON.name() + "\n";
-									directionalPreviousLineGAMate1 = GALine + "\tRG:Z:" + Strand.CRICK.name() + "\n";
-								}
-								previousEditDistanceMate1 = currentEditDistance;
-							} else if (directionalPreviousLineCTMate2 == null) {
-								if (ambiguous) {
-									directionalPreviousLineCTMate2 = CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON.name()
-											+ "\n";
-									directionalPreviousLineGAMate2 = GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name()
-											+ "\n";
-								} else {
-									directionalPreviousLineCTMate2 = CTLine + "\tRG:Z:" + Strand.WATSON.name() + "\n";
-									directionalPreviousLineGAMate2 = GALine + "\tRG:Z:" + Strand.CRICK.name() + "\n";
-								}
-								previousEditDistanceMate2 = currentEditDistance;
-							} else if (nonDirectionalPreviousLineCTMate1 == null) {
-								if (ambiguous) {
-									nonDirectionalPreviousLineCTMate1 = CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON
-											.name() + "\n";
-									nonDirectionalPreviousLineGAMate1 = GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name
-											() + "\n";
-								} else {
-									nonDirectionalPreviousLineCTMate1 = CTLine + "\tRG:Z:" + Strand.WATSON.name() +
-											"\n";
-									nonDirectionalPreviousLineGAMate1 = GALine + "\tRG:Z:" + Strand.CRICK.name() +
-											"\n";
-								}
-								nonDirectionalPreviousEditDistanceMate1 = currentEditDistance;
-							} else {
-								//which mate to print?? those with better edit distance
-								int directionalEditDistance = Math.max(previousEditDistanceMate1,
-										previousEditDistanceMate2);
-								int nonDirectionalEditDistance = Math.max(nonDirectionalPreviousEditDistanceMate1,
-										currentEditDistance);
-
-								if (directionalEditDistance >= nonDirectionalEditDistance) {
-									outputBufferCT.append(directionalPreviousLineCTMate1);
-									outputBufferCT.append(directionalPreviousLineCTMate2);
-									outputBufferGA.append(directionalPreviousLineGAMate1);
-									outputBufferGA.append(directionalPreviousLineGAMate2);
-								} else {
-									//we have better edit distance
-									outputBufferCT.append(nonDirectionalPreviousLineCTMate1);
-									outputBufferGA.append(nonDirectionalPreviousLineGAMate1);
-									if (ambiguous) {
-										outputBufferCT.append(CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON.name() +
-												"\n");
-										outputBufferGA.append(GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name() + "\n");
-									} else {
-										outputBufferCT.append(CTLine + "\tRG:Z:" + Strand.WATSON.name() + "\n");
-										outputBufferGA.append(GALine + "\tRG:Z:" + Strand.CRICK.name() + "\n");
-									}
-
-
-								}
-								previousEditDistanceMate1 = -1;
-								previousEditDistanceMate2 = -1;
-								nonDirectionalPreviousEditDistanceMate1 = -1;
-								directionalPreviousLineCTMate1 = null;
-								directionalPreviousLineGAMate1 = null;
-								directionalPreviousLineCTMate2 = null;
-								directionalPreviousLineGAMate2 = null;
-								nonDirectionalPreviousLineCTMate1 = null;
-								nonDirectionalPreviousLineGAMate1 = null;
-							}
-
-						} else {
-							if (directionalPreviousLineCT == null) {
-
-								if (ambiguous) {
-									directionalPreviousLineCT = CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON.name() +
-											"\n";
-									directionalPreviousLineGA = GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name() +
-											"\n";
-								} else {
-									directionalPreviousLineCT = CTLine + "\tRG:Z:" + Strand.WATSON.name() + "\n";
-									directionalPreviousLineGA = GALine + "\tRG:Z:" + Strand.CRICK.name() + "\n";
-								}
-								previousEditDistance = currentEditDistance;
-							} else {
-								// which of the two pairs should be written, the one with the best alignment. If none
-								// has alignment
-								// keep the first one in the output
-								if (currentEditDistance == -1) {
-									// no matches in the non-directional reads, so do not output this line, only the
-									// preivous
-									outputBufferCT.append(directionalPreviousLineCT);
-									outputBufferGA.append(directionalPreviousLineGA);
-								} else {
-									if ((currentEditDistance < previousEditDistance && previousEditDistance != -1) ||
-											previousEditDistance == -1 && currentEditDistance >= 0) {
-										// we have better edit distance, ignore previous, print the non-directional
-										// instead
-										if (ambiguous) {
-											outputBufferCT.append(CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON.name() +
-													"\n");
-											outputBufferGA.append(GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name() +
-													"\n");
-										} else {
-											outputBufferCT.append(CTLine + "\tRG:Z:" + Strand.WATSON.name() + "\n");
-											outputBufferGA.append(GALine + "\tRG:Z:" + Strand.CRICK.name() + "\n");
-										}
-									} else {
-										// no better edit distance, print only the previous
-										outputBufferCT.append(directionalPreviousLineCT);
-										outputBufferGA.append(directionalPreviousLineGA);
-									}
-								}
-
-								directionalPreviousLineCT = null;
-								directionalPreviousLineGA = null;
-								previousEditDistance = -1;
-
-							}
-						}
+						mergeNonDirectionalSAMRecords(ambiguous, tokensCT, tokensGA);
 					}
 
 
 				} else {
+					// header line (starting with @)
 					outputBufferCT.append(CTLine + "\n");
 					outputBufferGA.append(GALine + "\n");
 				}
@@ -621,6 +912,265 @@ public class BowtieAlignment {
 				GALine = null;
 				//System.out.println("merged!");
 
+			}
+
+			private void mergeNonDirectionalSAMRecords(boolean ambiguous, String[] tokensCT, String[] tokensGA) {
+				//get score
+				int currentScore = Integer.MIN_VALUE;
+				boolean alignedInCT = false;
+				boolean alignedInGA = false;
+				if (!tokensCT[5].equals("*")) {
+					alignedInCT = true;
+					currentScore = scoreFunction.getScore(CTLine);
+				}
+
+				if (!tokensGA[5].equals("*")) {
+					alignedInGA = true;
+					int GAScore = scoreFunction.getScore(GALine);
+					if (GAScore > currentScore) {
+						currentScore = GAScore;
+					}
+				}
+
+				if (sample.isPaired()) {
+					mergeNonDirectionalPairedEndSAMLines(ambiguous, currentScore, alignedInCT, alignedInGA);
+
+				} else {
+					mergeNonDirectionalSingleEndSAMLines(ambiguous, currentScore, alignedInCT, alignedInGA);
+				}
+			}
+
+			private void mergeNonDirectionalSingleEndSAMLines(boolean ambiguous, int currentScore, boolean alignedInCT, boolean alignedInGA) {
+				if (directionalPreviousLineCT == null) {
+					// reading the directional attempt
+					directionalPreviousLineCT = CTLine + "\tRG:Z:" + Strand.WATSON.name();
+					directionalPreviousLineCTWasAligned = alignedInCT;
+					directionalPreviousLineGA = GALine + "\tRG:Z:" + Strand.CRICK.name();
+					directionalPreviousLineGAWasAligned = alignedInGA;
+					if (ambiguous) {
+						directionalWasAmbiguous = true;
+					}
+					directionalScore = currentScore;
+				} else {
+					int nonDirectionalScore = currentScore;
+					// reading the non-directional attempt
+
+					// which of the two pairs should be written, the one with the best alignment. If none
+					// has alignment put the directional unaligned sam records in the output
+					if ((directionalScore >= nonDirectionalScore)) {
+						// no better score or no-alignment, so print only the previous (the directional)
+
+						// the direction tag is present only if the read was aligned
+						String directionTagCT = directionalPreviousLineCTWasAligned?"\tZD:A:F":"";
+						String directionTagGA = directionalPreviousLineGAWasAligned?"\tZD:A:F":"";
+
+						if (directionalWasAmbiguous || nonDirectionalScore > Integer.MIN_VALUE) {
+							// the directional alignment is ambiguous when it was aligned in WATSON and
+							// CRICK, but also if the non-directional attempt (currentScore) was also
+							// aligned (nonDirectionalScore > MIN_VALUE)
+							String ambiguousTypeTag;
+
+							if (directionalWasAmbiguous && nonDirectionalScore > Integer.MIN_VALUE) {
+								ambiguousTypeTag = "ZT:A:B";
+							} else if (directionalWasAmbiguous) {
+								ambiguousTypeTag = "ZT:A:S";
+							} else {
+								ambiguousTypeTag = "ZT:A:D";
+							}
+
+							outputBufferCT.append(directionalPreviousLineCT + directionTagCT + "\tZA:A:Y\t" +
+									ambiguousTypeTag
+									+ "\n");
+							outputBufferGA.append(directionalPreviousLineGA + directionTagGA + "\tZA:A:Y\t" +
+									ambiguousTypeTag + "\n");
+						} else {
+							outputBufferCT.append(directionalPreviousLineCT + directionTagCT + "\n");
+							outputBufferGA.append(directionalPreviousLineGA + directionTagGA + "\n");
+						}
+
+					} else {
+						// we have better score, ignore previous, print the non-directional instead
+
+						// the direction tag is present only if the read was aligned
+						String directionTagCT = alignedInCT?"\tZD:A:R":"";
+						String directionTagGA = alignedInGA?"\tZD:A:R":"";
+
+						if (ambiguous || directionalScore > Integer.MIN_VALUE) {
+							// if the non-directional is ambiguous (CRICK/WATSON) or the directional also
+							// was aligned, mark this alignment as ambiguous
+							// ambiguity means both WASTON/CRICK or DIRECTIONAL/NON-DIRECTIONAL confusion
+							nonDirectionalIsAmbiguous = true;
+
+							String ambiguousTypeTag;
+							if (ambiguous && directionalScore > Integer.MIN_VALUE) {
+								ambiguousTypeTag = "ZT:A:B";
+							} else if (ambiguous) {
+								ambiguousTypeTag = "ZT:A:S";
+							} else {
+								ambiguousTypeTag = "ZT:A:D";
+							}
+							outputBufferCT.append(CTLine + directionTagCT + "\tZA:A:Y" + "\t" + ambiguousTypeTag +
+									"\tRG:Z:" + Strand.WATSON
+									.name() +
+									"\n");
+							outputBufferGA.append(GALine + directionTagGA + "\tZA:A:Y" + "\t" + ambiguousTypeTag +
+									"\tRG:Z:" + Strand.CRICK
+									.name() +
+									"\n");
+						} else {
+							outputBufferCT.append(CTLine + directionTagCT + "\tRG:Z:" + Strand.WATSON.name() + "\n");
+							outputBufferGA.append(GALine + directionTagGA + "\tRG:Z:" + Strand.CRICK.name() + "\n");
+						}
+					}
+
+					directionalPreviousLineCT = null;
+					directionalPreviousLineCTWasAligned = false;
+					directionalPreviousLineGA = null;
+					directionalPreviousLineGAWasAligned = false;
+					directionalScore = Integer.MIN_VALUE;
+					directionalWasAmbiguous = false;
+					nonDirectionalIsAmbiguous = false;
+
+				}
+			}
+
+			private void mergeNonDirectionalPairedEndSAMLines(boolean ambiguous, int currentScore, boolean alignedInCT, boolean alignedInGA) {
+				if (directionalPreviousLineCTMate1 == null) {
+					// reading the first mate alignments of the directional attempt
+
+					directionalPreviousLineCTMate1 = CTLine + "\tRG:Z:" + Strand.WATSON.name();
+					directionalPreviousLineCTMate1WasAligned = alignedInCT;
+					directionalPreviousLineGAMate1 = GALine + "\tRG:Z:" + Strand.CRICK.name();
+					directionalPreviousLineGAMate1WasAligned = alignedInGA;
+					previousScoreMate1 = currentScore;
+				} else if (directionalPreviousLineCTMate2 == null) {
+					// reading the second mate alignments of the directional attempt
+					directionalPreviousLineCTMate2 = CTLine + "\tRG:Z:" + Strand.WATSON.name();
+					directionalPreviousLineCTMate2WasAligned = alignedInCT;
+					directionalPreviousLineGAMate2 = GALine + "\tRG:Z:" + Strand.CRICK.name();
+					directionalPreviousLineGAMate2WasAligned = alignedInGA;
+					previousScoreMate2 = currentScore;
+					if (ambiguous) {
+						directionalWasAmbiguous = true;
+					}
+				} else if (nonDirectionalPreviousLineCTMate1 == null) {
+					// reading the first mate alignments of the non-directional attempt
+					nonDirectionalPreviousLineCTMate1 = CTLine + "\tRG:Z:" + Strand.WATSON.name();
+					nonDirectionalPreviousLineCTMate1WasAligned = alignedInCT;
+					nonDirectionalPreviousLineGAMate1 = GALine + "\tRG:Z:" + Strand.CRICK.name();
+					nonDirectionalPreviousLineGAMate1WasAligned = alignedInGA;
+					nonDirectionalPreviousScoreMate1 = currentScore;
+				} else {
+					// reading the second mate alignments of the non-directional attempt
+
+					//which mate to print?? those with better score
+					int directionalScore = max(previousScoreMate1, previousScoreMate2);
+					int nonDirectionalScore = max(nonDirectionalPreviousScoreMate1, currentScore);
+
+					if (directionalScore >= nonDirectionalScore) {
+						// the directional is better
+
+						// the direction tag is present only if the read was aligned
+						String directionTagCT = directionalPreviousLineCTMate1WasAligned?"\tZD:A:F":"";
+						String directionTagGA = directionalPreviousLineGAMate1WasAligned?"\tZD:A:F":"";
+
+						if (directionalWasAmbiguous || nonDirectionalScore > Integer.MIN_VALUE) {
+							// the directional alignment is ambiguous when it was aligned in WATSON and
+							// CRICK, but also if the non-directional attempt (currentScore) was also
+							// aligned (nonDirectionalScore > MIN_VALUE)
+
+							String ambiguousTypeTag;
+							if (directionalWasAmbiguous && nonDirectionalScore > Integer.MIN_VALUE) {
+								ambiguousTypeTag = "ZT:A:B";
+							} else if (directionalWasAmbiguous) {
+								ambiguousTypeTag = "ZT:A:S";
+							} else {
+								ambiguousTypeTag = "ZT:A:D";
+							}
+							outputBufferCT.append(directionalPreviousLineCTMate1 + directionTagCT + "\tZA:A:Y\t" +
+									ambiguousTypeTag + "\n");
+							outputBufferGA.append(directionalPreviousLineGAMate1 + directionTagGA + "\tZA:A:Y\t" +
+									ambiguousTypeTag + "\n");
+							outputBufferCT.append(directionalPreviousLineCTMate2 + directionTagCT + "\tZA:A:Y\t" +
+									ambiguousTypeTag + "\n");
+							outputBufferGA.append(directionalPreviousLineGAMate2 + directionTagGA + "\tZA:A:Y\t" +
+									ambiguousTypeTag + "\n");
+						} else {
+							outputBufferCT.append(directionalPreviousLineCTMate1 + directionTagCT + "\n");
+							outputBufferGA.append(directionalPreviousLineGAMate1 + directionTagGA + "\n");
+							outputBufferCT.append(directionalPreviousLineCTMate2 + directionTagCT + "\n");
+							outputBufferGA.append(directionalPreviousLineGAMate2 + directionTagGA + "\n");
+						}
+					} else {
+						//we have better score, the non-directional is better
+
+						// the direction tag is present only if the read was aligned
+						String directionTagCT = nonDirectionalPreviousLineCTMate1WasAligned?"\tZD:A:R":"";
+						String directionTagGA = nonDirectionalPreviousLineGAMate1WasAligned?"\tZD:A:R":"";
+
+						if (ambiguous || directionalScore > Integer.MIN_VALUE) {
+							// if the non-directional is ambiguous (CRICK/WATSON) or the directional also
+							// was aligned, mark this alignment as ambiguous
+							// ambiguity means both WASTON/CRICK or DIRECTIONAL/NON-DIRECTIONAL confusion
+							String ambiguousTypeTag;
+							if (ambiguous && directionalScore > Integer.MIN_VALUE) {
+								ambiguousTypeTag = "ZT:A:B";
+							} else if (ambiguous) {
+								ambiguousTypeTag = "ZT:A:S";
+							} else {
+								ambiguousTypeTag = "ZT:A:D";
+							}
+							//print first mate
+							outputBufferCT.append(nonDirectionalPreviousLineCTMate1 + directionTagCT + "\tZA:A:Y" +
+									"\t" + ambiguousTypeTag + "\n");
+							outputBufferGA.append(nonDirectionalPreviousLineGAMate1 + directionTagGA + "\tZA:A:Y" +
+									"\t" +
+									ambiguousTypeTag + "\n");
+
+							// print second mate (current lines)
+							outputBufferCT.append(CTLine + "\tRG:Z:" + Strand.WATSON.name() + directionTagCT + "\tZA:A:Y"
+									+ "\t" + ambiguousTypeTag + "\n");
+							outputBufferGA.append(GALine + "\tRG:Z:" + Strand.CRICK.name() + directionTagGA +
+									"\tZA:A:Y" +
+									"\t" + ambiguousTypeTag + "\n");
+						} else {
+							//print first mate
+							outputBufferCT.append(nonDirectionalPreviousLineCTMate1 + directionTagCT + "\n");
+							outputBufferGA.append(nonDirectionalPreviousLineGAMate1 + directionTagGA + "\n");
+
+							// print second mate (current lines)
+							outputBufferCT.append(CTLine + directionTagCT + "\tRG:Z:" + Strand.WATSON.name() + "\n");
+							outputBufferGA.append(GALine + directionTagGA + "\tRG:Z:" + Strand.CRICK.name() + "\n");
+						}
+
+					}
+					previousScoreMate1 = Integer.MIN_VALUE;
+					previousScoreMate2 = Integer.MIN_VALUE;
+					nonDirectionalPreviousScoreMate1 = Integer.MIN_VALUE;
+					directionalPreviousLineCTMate1 = null;
+					directionalPreviousLineCTMate1WasAligned = false;
+					directionalPreviousLineGAMate1 = null;
+					directionalPreviousLineGAMate1WasAligned = false;
+					directionalPreviousLineCTMate2 = null;
+					directionalPreviousLineCTMate2WasAligned = false;
+					directionalPreviousLineGAMate2 = null;
+					directionalPreviousLineGAMate2WasAligned = false;
+					nonDirectionalPreviousLineCTMate1 = null;
+					nonDirectionalPreviousLineCTMate1WasAligned = false;
+					nonDirectionalPreviousLineGAMate1 = null;
+					nonDirectionalPreviousLineGAMate1WasAligned = false;
+					directionalWasAmbiguous = false;
+				}
+			}
+
+			private void mergeDirectionalSAMLines(boolean ambiguous) {
+				if (ambiguous) {
+					outputBufferCT.append(CTLine + "\tZA:A:Y\tRG:Z:" + Strand.WATSON.name() + "\n");
+					outputBufferGA.append(GALine + "\tZA:A:Y\tRG:Z:" + Strand.CRICK.name() + "\n");
+				} else {
+					outputBufferCT.append(CTLine + "\tRG:Z:" + Strand.WATSON.name() + "\n");
+					outputBufferGA.append(GALine + "\tRG:Z:" + Strand.CRICK.name() + "\n");
+				}
 			}
 
 			private void flushBuffer() {
@@ -697,7 +1247,7 @@ public class BowtieAlignment {
 		}
 
 		//write the header of the sam doing a "dummy alignment"
-		AlignerPostprocessor dummyposprocessor = new AlignerPostprocessor(0);
+		AlignerPostprocessor dummyposprocessor = new AlignerPostprocessor(0, scoreFunction);
 		LineProcessor dummyctProcessor = dummyposprocessor.CTProcessor;
 		LineProcessor dummygaProcessor = dummyposprocessor.GAProcessor;
 		AlignerThread dummyThreadCT = new AlignerThread(refCT, Strand.WATSON, dummyctProcessor, alignmentOutputFileCT
@@ -723,7 +1273,7 @@ public class BowtieAlignment {
 		List<AlignerPostprocessor> postprocessors = new LinkedList<AlignerPostprocessor>();
 
 		for (int i = 0; i < streamsWATSON.size(); i++) {
-			AlignerPostprocessor postprocessor = new AlignerPostprocessor(i + 1);
+			AlignerPostprocessor postprocessor = new AlignerPostprocessor(i + 1, scoreFunction);
 			postprocessors.add(postprocessor);
 			LineProcessor ctProcessor = postprocessor.CTProcessor;
 			LineProcessor gaProcessor = postprocessor.GAProcessor;
