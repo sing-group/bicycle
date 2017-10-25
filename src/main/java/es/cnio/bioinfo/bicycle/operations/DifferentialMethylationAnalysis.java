@@ -90,7 +90,7 @@ public class DifferentialMethylationAnalysis {
 			.getStop()+"\t");
 			outTemp.print(regionCount.toString());
 			
-			double pValue = this.computePValueForBase(regionCount);
+			double pValue = this.computePValue(regionCount);
 			pValues.add(pValue);
 			
 			outTemp.println(pValue);			
@@ -224,7 +224,7 @@ public class DifferentialMethylationAnalysis {
 			 */
 
 
-			double pValue = this.computePValueForBase(regionCount);
+			double pValue = this.computePValue(regionCount);
 			pValues.add(pValue);
 
 			outTemp.println(pValue);
@@ -556,7 +556,7 @@ public class DifferentialMethylationAnalysis {
 		 * END of type (2) calculation
 		 */
 
-		double pValue = computePValueForBase(counts);
+		double pValue = computePValue(counts);
 		outTemp.print(pValue);
 		outTemp.println();
 
@@ -650,7 +650,7 @@ public class DifferentialMethylationAnalysis {
 		return new MethylationCounts(treatmentCytosines, treatmentDepth, controlCytosines, controlDepth);
 	}
 
-	private double computePValueForBase(MethylationCounts counts) {
+	private double computePValue(MethylationCounts counts) {
 
 		int[] treatmentCytosinesArray = ArrayUtils.toPrimitive(counts.treatmentCytosines.toArray(new Integer[]{}));
 		int[] treatmentDepthArray = ArrayUtils.toPrimitive(counts.treatmentDepth.toArray(new Integer[]{}));
