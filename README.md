@@ -10,7 +10,7 @@ bicycle (bisulfite-based methylcytosine caller) is a next-generation sequencing 
 Bicycle requirements:
 - Operating System: Linux/OSX
 - Java 1.8+
-- Bowtie aligner 0.12.7+
+- Bowtie1 aligner 0.12.7+ or Bowtie2 aligner 2.3.2+
 - samtools 0.1.8+
 
 ## Coordinators
