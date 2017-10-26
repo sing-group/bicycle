@@ -50,11 +50,16 @@ public class ReferenceIndexingCommand extends ProjectCommand {
 			throw new IllegalArgumentException("bowtie version must be 1 or 2");
 		}
 
+
+
+
+
 		for (Reference ref : project.getReferences()) {
 			if (v == 1) {
 				al.buildBowtieIndex(ref);
 			} else { //bowtie 2
-				al.buildBowtie2Index(ref);
+				int t = Integer.parseInt(parameters.get(this.findOption("t")));
+				al.buildBowtie2Index(ref, t);
 			}
 		}
 	}
@@ -65,6 +70,9 @@ public class ReferenceIndexingCommand extends ProjectCommand {
 
 		toret.add(new DefaultValuedOption("bowtie-version", "v",
 				"bowtie version to use (valid options are 1 or 2)"
+				, "2"));
+		toret.add(new DefaultValuedOption("bowtie2-t", "t",
+				"number of threads (only for bowtie2)"
 				, "2"));
 
 		return toret;

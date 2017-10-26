@@ -163,14 +163,17 @@ public class BowtieAlignment {
 
 
 	public void buildBowtieIndex(Reference reference) throws IOException {
-		buildBowtieIndex(reference, 1);
+		buildBowtieIndex(reference, 1, 1);
 	}
 
 	public void buildBowtie2Index(Reference reference) {
-		buildBowtieIndex(reference, 2);
+		buildBowtieIndex(reference, 2, 2);
+	}
+	public void buildBowtie2Index(Reference reference, int numThreads) {
+		buildBowtieIndex(reference, 2, numThreads);
 	}
 
-	private void buildBowtieIndex(Reference reference, int bowtieVersion) {
+	private void buildBowtieIndex(Reference reference, int bowtieVersion, int numThreads) {
 		ReferenceBisulfitation rb = new ReferenceBisulfitation(this.project);
 
 
@@ -188,30 +191,32 @@ public class BowtieAlignment {
 					" " +
 					"be found. Please, perform reference in-silico bisulfitation first");
 		}
-		buildBowtieIndex(bisulfitedReferenceCT, bowtieVersion);
+		buildBowtieIndex(bisulfitedReferenceCT, bowtieVersion, numThreads);
 
-		buildBowtieIndex(bisulfitedReferenceGA, bowtieVersion);
+		buildBowtieIndex(bisulfitedReferenceGA, bowtieVersion, numThreads);
 	}
 
-	private void buildBowtieIndex(File bisulfitedReference, int bowtieVersion) {
+	private void buildBowtieIndex(File bisulfitedReference, int bowtieVersion, int numThreads) {
 		logger.info("Building Bowtie index for " + bisulfitedReference.toString().replaceAll(project
 				.getWorkingDirectory() + File.separator, Project.WORKING_DIRECTORY));
 
 		String bowtieBuildPath = "";
 
+		String[] command = null;
 		if (bowtieVersion == 1) {
 			bowtieBuildPath = (this.project.getBowtieDirectory() != null ? this.project.getBowtieDirectory()
 					.getAbsolutePath() + File
 					.separator : "") + "bowtie-build";
+			command = new String[]{bowtieBuildPath, bisulfitedReference.getAbsolutePath(), bisulfitedReference
+					.getAbsolutePath()};
 		} else {
 			bowtieBuildPath = (this.project.getBowtie2Directory() != null ? this.project.getBowtie2Directory()
 					.getAbsolutePath() + File
 					.separator : "") + "bowtie2-build";
+			command = new String[]{bowtieBuildPath, "--threads", ""+numThreads, bisulfitedReference.getAbsolutePath(),
+					bisulfitedReference
+					.getAbsolutePath()};
 		}
-
-
-		String[] command = new String[]{bowtieBuildPath, bisulfitedReference.getAbsolutePath(), bisulfitedReference
-				.getAbsolutePath()};
 
 		StandardStreamsToLoggerRedirector redirector = new StandardStreamsToLoggerRedirector(logger, Level.INFO,
 				new StandardStreamsToLoggerRedirector.MessageFilter() {
