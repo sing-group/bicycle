@@ -16,6 +16,7 @@
 
 		<junit.version>4.12</junit.version>
 		<easymock.version>3.4</easymock.version>
+		<maven-assembly-plugin.version>2.2</maven-assembly-plugin.version>
 
 		<dist.directory>${project.build.directory}/dist</dist.directory>
 	</properties>
@@ -132,6 +133,13 @@
 					<exclude>**/*.txt</exclude>
 				</excludes>
 			</resource>
+			<resource>
+				<directory>src/main/resources/assembly</directory>
+				<filtering>false</filtering>
+				<includes>
+					<include>README.txt</include>
+				</includes>
+			</resource>
 		</resources>
 		<plugins>
 			<plugin>
@@ -151,6 +159,25 @@
 								<resource>
 									<directory>${project.build.resources[0].directory}/cmd</directory>
 									<filtering>true</filtering>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+					<execution>
+						<id>copy-resources-2</id>
+						<!-- here the phase you need -->
+						<phase>validate</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${dist.directory}</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${project.build.resources[0].directory}/assembly</directory>
+									<includes>
+										<include>README.txt</include>
+									</includes>
 								</resource>
 							</resources>
 						</configuration>
@@ -292,6 +319,28 @@
 				</executions>
 			</plugin>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>${maven-assembly-plugin.version}</version>
+				<configuration>
+							<finalName>${project.name}-${project.version}</finalName>
+							<appendAssemblyId>true</appendAssemblyId>
+							<outputDirectory>${project.builds.directory}</outputDirectory>
+							<descriptors>
+								<descriptor>src/main/resources/assembly/linux.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<executions>
+							<execution>
+								<id>distribution</id>
+								<phase>package</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+							</execution>
+						</executions>
+			</plugin>
+			<plugin>
 				<groupId>org.mule.tools</groupId>
 				<artifactId>github-readme-maven-plugin</artifactId>
 				<version>1.0-SNAPSHOT</version>
@@ -314,7 +363,7 @@
 Bicycle requirements:
 - Operating System: Linux/OSX
 - Java 1.8+
-- Bowtie aligner 0.12.7+
+- Bowtie1 aligner 0.12.7+ or Bowtie2 aligner 2.3.2+
 - samtools 0.1.8+
 								]]></section>
 								<section><![CDATA[
