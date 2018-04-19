@@ -49,24 +49,25 @@ public class CreateProjectCommand extends AbstractCommand {
 		List<Option> toret = new LinkedList<Option>();
 
 		toret.add(new Option("project-directory", "p", "directory where files will be stored", false, true));
-		toret.add(new Option("reference-directory", "r", "directory with reference genomes (fasta files)", false,
+		toret.add(new Option("reference-directory", "r",
+				"directory with reference genomes (fasta files, with .fa, .fasta or .fna extension )", false, true));
+		toret.add(new Option("reads-directory", "f",
+				"directory with reads samples (directories with fastq files). " + "One" + " directory per sample",
+				false, true));
+		toret.add(new Option("bowtie-directory", "b", "directory where bowtie v1.x.x aligner is installed. If not "
+				+ "specified and you will use bowtie 1 during alignment," + " bowtie 1 is expected to be in PATH", true,
 				true));
-		toret.add(new Option("reads-directory", "f", "directory with reads samples (directories with fastq files). " +
-				"One" +
-				" directory per sample", false, true));
-		toret.add(new Option("bowtie-directory", "b", "directory where bowtie v1.x.x aligner is installed. If not " +
-				"specified and you will use bowtie 1 during alignment," +
-				" bowtie 1 is expected to be in PATH",
+		toret.add(new Option("bowtie2-directory", "b2", "directory where bowtie v2.x.x aligner is installed. If not "
+				+ "specified and you will use bowtie 2 during alignment," + " bowtie 2 is expected to be in PATH", true,
+				true));
+		toret.add(new Option("samtools-directory", "s",
+				"directory where samtools are installed. If not specified, " + "samtools is expected to be in PATH",
 				true, true));
-		toret.add(new Option("bowtie2-directory", "b2", "directory where bowtie v2.x.x aligner is installed. If not " +
-				"specified and you will use bowtie 2 during alignment," +
-				" bowtie 2 is expected to be in PATH",
-				true, true));
-		toret.add(new Option("samtools-directory", "s", "directory where samtools are installed. If not specified, " +
-				"samtools is expected to be in PATH", true, true));
 		toret.add(new Option("non-directional", "n", "bs-seq was made in non-directional protocol", true, false));
-		toret.add(new Option("paired-mate1-regexp", "m", "Enable paired-end mode. The value is a regular expression " +
-				"which only can be found inside the mate 1 fastq file names. For example: _1.fastq", true, true));
+		toret.add(new Option("paired-mate1-regexp", "m",
+				"Enable paired-end mode. The value is a regular expression "
+						+ "which only can be found inside the mate 1 fastq file names. For example: _1.fastq",
+				true, true));
 
 		return toret;
 	}

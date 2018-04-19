@@ -112,10 +112,12 @@ public class Project {
 		List<File> files = Arrays.asList(this.getReferenceDirectory().listFiles(new FileFilter() {
 			@Override
 			public boolean accept(File file) {
-				return file.isFile() && file.getName().endsWith(".fa");
+				return file.isFile() && (
+						file.getName().endsWith(".fa")||
+						file.getName().endsWith(".fasta")||
+						file.getName().endsWith(".fna"));
 			}
 		}));
-
 		ArrayList<Reference> toret = new ArrayList<Reference>();
 		for (File refFile : files) {
 			toret.add(new Reference(this, refFile));

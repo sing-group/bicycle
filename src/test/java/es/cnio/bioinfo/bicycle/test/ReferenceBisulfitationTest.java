@@ -21,6 +21,7 @@ along with bicycle Project.  If not, see <http://www.gnu.org/licenses/>.
 
 package es.cnio.bioinfo.bicycle.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -44,10 +45,13 @@ public class ReferenceBisulfitationTest {
 		File tempDir = Utils.generateTempDirName("newproject");
 		File refsDir = Utils.generateTempDirName("refs");
 		refsDir.mkdir();
-		File genome1 = Utils.touchFile(refsDir, "genome01.fasta");
+		File genome1 = Utils.touchFile(refsDir, "genome01.fa");
 		Utils.append(genome1, ">seq\n" + aSequence + "\n");
 		File genome2 = Utils.touchFile(refsDir, "genome02.fasta");
 		Utils.append(genome2, ">seq\n" + aSequence + "\n");
+		File genome3 = Utils.touchFile(refsDir, "genome03.fna");
+		Utils.append(genome3, ">seq\n" + aSequence + "\n");
+		Utils.touchFile(refsDir, "strangefile.txt");
 		try {
 			Project p = Project.buildNewProject(
 					tempDir,
@@ -58,6 +62,8 @@ public class ReferenceBisulfitationTest {
 					new File(Utils.getSamtoolsPath()),
 					true);
 
+			assertEquals(3, p.getReferences().size());
+			
 			ReferenceBisulfitation rb = new ReferenceBisulfitation(p);
 
 
