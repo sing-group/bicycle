@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>es.cnio.bioinfo</groupId>
 	<artifactId>bicycle</artifactId>
-	<version>1.8.0</version>
+	<version>1.8.1</version>
 	
 	<description>bicycle (bisulfite-based methylcytosine caller) is a next-generation sequencing bioinformatics pipeline able to perform a full DNA methylation level analysis. More info at the [bicycle](http://sing.ei.uvigo.es/bicycle) project page.</description>
 

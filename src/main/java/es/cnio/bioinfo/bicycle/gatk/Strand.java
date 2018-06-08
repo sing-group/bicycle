@@ -45,10 +45,11 @@ public enum Strand {
 				if (ref.getWindow().getStop() - pos == 2) {
 
 					byte[] downstream = ref.getBases();
-
-					if (downstream[3] == 'G') {
+					// correct index if pos <= 2
+					int correction = pos == 2? -1:pos == 1? -2: 0;
+					if (downstream[3+correction] == 'G') {
 						return Context.CG;
-					} else if (downstream[4] == 'G') {
+					} else if (downstream[4+correction] == 'G') {
 						return Context.CHG;
 					} else {
 						return Context.CHH;
@@ -62,6 +63,10 @@ public enum Strand {
 			}
 		} else if (this == CRICK) {
 			if (ref.getBase() == 'G') {
+			  if (pos <= 2) {
+			    System.err.println("Cannot compute context for " + ref.getLocus().getContig() + ":" + pos + " strand Crick");
+          return null;
+			  }
 				if (pos - ref.getWindow().getStart() == 2) {
 
 					byte[] bases = ref.getBases();
