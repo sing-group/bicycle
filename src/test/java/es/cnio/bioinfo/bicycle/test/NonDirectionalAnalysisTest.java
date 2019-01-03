@@ -134,7 +134,7 @@ public class NonDirectionalAnalysisTest {
 							0.01,
 							1,
 							bedFiles,
-							0.001, 0.001);
+							0.001, 0.001, false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");

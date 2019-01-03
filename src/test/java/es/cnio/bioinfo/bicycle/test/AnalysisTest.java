@@ -136,7 +136,8 @@ public class AnalysisTest {
 							0.01,
 							4,
 							bedFiles,
-							"control");
+							"control",
+							false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");
@@ -202,7 +203,8 @@ public class AnalysisTest {
 							0.01,
 							1,
 							bedFiles,
-							"control");
+							"control",
+							false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");
@@ -269,7 +271,8 @@ public class AnalysisTest {
 							0.01,
 							1,
 							bedFiles,
-							"control");
+							"control",
+							false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");
@@ -352,7 +355,8 @@ public class AnalysisTest {
 							0.01,
 							4,
 							bedFiles,
-							"control");
+							"control",
+							false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");
@@ -420,7 +424,8 @@ public class AnalysisTest {
 							0.01,
 							4,
 							bedFiles,
-							"control");
+							"control",
+							false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");
@@ -498,7 +503,8 @@ public class AnalysisTest {
 							0.01,
 							4,
 							bedFiles,
-							"control");
+							"control",
+							false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");

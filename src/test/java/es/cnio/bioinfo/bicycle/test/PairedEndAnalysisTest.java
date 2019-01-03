@@ -130,7 +130,7 @@ public class PairedEndAnalysisTest {
 							0.01,
 							4,
 							bedFiles,
-							0.001, 0.001);
+							0.001, 0.001, false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 					System.err.println("====METHYLATION-WATSON=====");

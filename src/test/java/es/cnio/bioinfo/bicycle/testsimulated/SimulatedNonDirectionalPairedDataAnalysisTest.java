@@ -146,7 +146,7 @@ public class SimulatedNonDirectionalPairedDataAnalysisTest {
 							0.01,
 							4,
 							new ArrayList<File>(),
-							"Ecoli");
+							"Ecoli", false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 

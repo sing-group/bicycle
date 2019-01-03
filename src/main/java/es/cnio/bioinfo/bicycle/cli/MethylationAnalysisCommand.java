@@ -53,6 +53,7 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 		boolean removeAmbiguous = parameters.containsKey(this.findOption("a"));
 		boolean onlyWithOneAlignment = parameters.containsKey(this.findOption("o"));
 		boolean removeClonal = parameters.containsKey(this.findOption("c"));
+		boolean removeSAM = parameters.containsKey(this.findOption("m"));
 		boolean correctNonCG = parameters.containsKey(this.findOption("g"));
 		int trimuntil = Integer.parseInt(parameters.get(this.findOption("t")));
 		boolean trimreads = trimuntil != 0;
@@ -96,7 +97,7 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 				for (Reference reference : project.getReferences()) {
 					ma.analyzeWithErrorFromControlGenome(reference, sample, trimreads, trimuntil, removeAmbiguous,
 							onlyWithOneAlignment, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads,
-							bedFiles, controlGenome);
+							bedFiles, controlGenome, removeSAM);
 				}
 			}
 
@@ -117,7 +118,7 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 				for (Reference reference : project.getReferences()) {
 					ma.analyzeWithFixedErrorRate(reference, sample, trimreads, trimuntil, removeAmbiguous,
 							onlyWithOneAlignment, removeBad,
-							removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, watsonError, crickError);
+							removeClonal, correctNonCG, mindepth, fdr, nThreads, bedFiles, watsonError, crickError, removeSAM);
 				}
 			}
 		} else if (errorMode == ErrorRateMode.from_barcodes) {
@@ -125,7 +126,7 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 				for (Reference reference : project.getReferences()) {
 					ma.analyzeWithErrorFromBarcodes(reference, sample, trimreads, trimuntil, removeAmbiguous,
 							onlyWithOneAlignment, removeBad, removeClonal, correctNonCG, mindepth, fdr, nThreads,
-							bedFiles);
+							bedFiles, removeSAM);
 				}
 			}
 		}
@@ -167,6 +168,9 @@ public class MethylationAnalysisCommand extends ProjectCommand {
 
 		toret.add(new Option("correct non-CG to CG", "g",
 				"Correct non-CG", true, false));
+		
+		toret.add(new Option("remove-sam", "m",
+      "Remove SAM files. Only keep generated bams", true, false));
 
 		return toret;
 	}

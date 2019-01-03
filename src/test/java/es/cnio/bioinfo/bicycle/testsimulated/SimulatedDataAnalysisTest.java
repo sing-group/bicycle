@@ -132,7 +132,8 @@ public class SimulatedDataAnalysisTest {
 							0.01,
 							1,
 							new ArrayList<File>(),
-							"Ecoli");
+							"Ecoli",
+							false);
 					assertTrue(ma.getSummaryFile(reference, sample).exists());
 
 

@@ -107,12 +107,13 @@ public class MethylationAnalysis {
 											 int mindepth,
 											 double fdr,
 											 int nThreads,
-											 List<File> bedFiles) throws IOException, InterruptedException {
+											 List<File> bedFiles,
+											 boolean removeSAMFiles) throws IOException, InterruptedException {
 
 		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, onlyWithOneAlignment, removeBad,
 				removeClonal,
 				correctNonCG,
-				mindepth, fdr, nThreads, ErrorRateMode.from_barcodes, "", 0d, 0d, bedFiles);
+				mindepth, fdr, nThreads, ErrorRateMode.from_barcodes, "", 0d, 0d, bedFiles, removeSAMFiles);
 	}
 
 	public void analyzeWithErrorFromControlGenome(Reference reference,
@@ -128,12 +129,13 @@ public class MethylationAnalysis {
 												  double fdr,
 												  int nThreads,
 												  List<File> bedFiles,
-												  String controlGenome) throws IOException, InterruptedException {
+												  String controlGenome,
+												  boolean removeSAMFiles) throws IOException, InterruptedException {
 
 		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, onlyWithOneAlignment, removeBad,
 				removeClonal,
 				correctNonCG,
-				mindepth, fdr, nThreads, ErrorRateMode.from_control_genome, controlGenome, 0d, 0d, bedFiles);
+				mindepth, fdr, nThreads, ErrorRateMode.from_control_genome, controlGenome, 0d, 0d, bedFiles, removeSAMFiles);
 	}
 
 	public void analyzeWithFixedErrorRate(Reference reference,
@@ -149,12 +151,12 @@ public class MethylationAnalysis {
 										  double fdr,
 										  int nThreads,
 										  List<File> bedFiles,
-										  double watsonError, double crickError) throws IOException,
+										  double watsonError, double crickError, boolean removeSAMFiles) throws IOException,
 			InterruptedException {
 
 		this.analyze(reference, sample, trimreads, trimuntil, removeAmbiguous, onlyWithOneAlignment, removeBad,
 				removeClonal, correctNonCG,
-				mindepth, fdr, nThreads, ErrorRateMode.FIXED, "", watsonError, crickError, bedFiles);
+				mindepth, fdr, nThreads, ErrorRateMode.FIXED, "", watsonError, crickError, bedFiles, removeSAMFiles);
 
 	}
 
@@ -174,12 +176,13 @@ public class MethylationAnalysis {
 						 String controlGenome,
 						 double watsonError,
 						 double crickError,
-						 List<File> bedFiles) throws IOException, InterruptedException {
+						 List<File> bedFiles,
+						 boolean removeSAMFiles) throws IOException, InterruptedException {
 
 		final String command = prepareGATKCommand(reference, sample, trimreads, trimuntil, removeAmbiguous,
 				onlyWithOneAlignment, removeBad,
 				removeClonal, correctNonCG, mindepth, fdr, nThreads, errorMode, controlGenome, watsonError,
-				crickError, bedFiles);
+				crickError, bedFiles, removeSAMFiles);
 
 		logger.info("Starting methylation analysis of sample " + sample.getName());
 		//logger.info("GATK command: "+command);
@@ -242,7 +245,7 @@ public class MethylationAnalysis {
 											  correctNonCG, int mindepth,
 									  double fdr, int nThreads, ErrorRateMode errorMode, String controlGenome, double
 											  watsonError,
-									  double crickError, List<File> bedFiles) throws InterruptedException,
+									  double crickError, List<File> bedFiles, boolean removeSAMFiles) throws InterruptedException,
 			IOException {
 
 		BowtieAlignment ba = new BowtieAlignment(this.project);
@@ -256,12 +259,21 @@ public class MethylationAnalysis {
 
 		File sortedCT = new File(samFileCT.getAbsolutePath() + ".sorted.sam");
 		File sortedGA = new File(samFileGA.getAbsolutePath() + ".sorted.sam");
-
-		sortSAM(samFileCT, sortedCT);
-		sortSAM(samFileGA, sortedGA);
-
-		File outputBamFileCT = buildBAMAndIndex(sortedCT, this.project.getSamtoolsDirectory());
-		File outputBamFileGA = buildBAMAndIndex(sortedGA, this.project.getSamtoolsDirectory());
+		File outputBamFileCT = new File(sortedCT.getAbsolutePath() + ".bam");
+		File outputBamFileGA =  new File(sortedGA.getAbsolutePath() + ".bam");
+		
+		if (!outputBamFileCT.exists() || 
+		  (samFileCT.exists() && samFileCT.lastModified() >= outputBamFileCT.lastModified())) {	  
+      sortSAM(samFileCT, sortedCT);
+      if (removeSAMFiles) samFileCT.delete();
+  		sortSAM(samFileGA, sortedGA);
+  		if (removeSAMFiles) samFileGA.delete();
+  		
+  		buildBAMAndIndex(sortedCT, this.project.getSamtoolsDirectory(), outputBamFileCT);
+  		if (removeSAMFiles) sortedCT.delete();
+  		buildBAMAndIndex(sortedGA, this.project.getSamtoolsDirectory(), outputBamFileGA);
+  		if (removeSAMFiles) sortedGA.delete();
+		}
 
 		// RuntimeMXBean runtimemxBean = ManagementFactory.getRuntimeMXBean();
 		// String command = "java -Xmx1024M -cp "+runtimemxBean.getClassPath()+"
@@ -528,12 +540,6 @@ public class MethylationAnalysis {
 
 	private void sortSAM(File sam, File output) throws InterruptedException, IOException {
 		//sort the sam
-
-		if (new File(output.getAbsolutePath()).exists() && new File(output.getAbsolutePath()).lastModified() > sam
-				.lastModified()) {
-			//System.out.println("skipping. found the corresponding sorted file, older than the unsorted input file");
-			return;
-		}
 		logger.info("Sorting " + sam.getAbsolutePath().replaceAll(project.getOutputDirectory() + File.separator,
 				Project.OUTPUT_DIRECTORY));
 		String outfile = sam.getAbsolutePath() + ".sorted.sam";
@@ -622,8 +628,8 @@ public class MethylationAnalysis {
 		enableSystemErr();
 	}
 
-	private File buildBAMAndIndex(File samCT, File samtoolsDirectory) {
-		File bam = new File(samCT.getAbsolutePath() + ".bam");
+	private File buildBAMAndIndex(File samCT, File samtoolsDirectory, File bam) {
+		
 		String samtoolsPath = (samtoolsDirectory != null ? samtoolsDirectory.getAbsolutePath() + File
 				.separator : "") + "samtools";
 		if (bam.exists() && bam.lastModified() > samCT.lastModified()) {
