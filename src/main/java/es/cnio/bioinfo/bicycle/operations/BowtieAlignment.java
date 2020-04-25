@@ -798,11 +798,17 @@ public class BowtieAlignment {
 						throw new RuntimeException(e1);
 					}
 
+					int returnValue = process.waitFor();
+					if (returnValue != 0) {
+					  throw new RuntimeException("Bowtie has a non-zero return value. Check its logs for details");
+					}
 					shouldStop = true; //bowtie sends a null output, so the input feed should stop
 
 				} catch (FileNotFoundException e1) {
 					throw new RuntimeException(e1);
-				}
+				} catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
 
 			}
 		}
