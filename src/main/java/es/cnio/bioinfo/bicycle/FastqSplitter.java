@@ -24,188 +24,125 @@ package es.cnio.bioinfo.bicycle;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 public class FastqSplitter {
 
+  public static List<BufferedReader> splitfastq(List<File> fastqs, int maxChunks) throws IOException {
 
-	public static List<BufferedReader> splitfastq(List<File> fastqs, int maxChunks) throws IOException {
+    // get total length
+    long totalLength = 0;
 
-		//get total length
-		long totalLength = 0;
+    // which is the global starting byte (inclusive) of each file
+    List<Long> fileStarts = new LinkedList<Long>();
 
-		// which is the global starting byte (inclusive) of each file
-		List<Long> fileStarts = new LinkedList<Long>();
+    for (File f : fastqs) {
+      fileStarts.add(totalLength);
+      totalLength += f.length();
+    }
 
-		for (File f : fastqs) {
-			fileStarts.add(totalLength);
-			totalLength += f.length();
-		}
+    long chunkStep = totalLength / maxChunks;
+    // System.out.println("chunk step: "+chunkStep);
 
+    long currentStart = 0;
+    List<Long> chunks = new LinkedList<Long>();
 
-		long chunkStep = totalLength / maxChunks;
-		//System.out.println("chunk step: "+chunkStep);
+    for (int chunk = 0; chunk < maxChunks; chunk++) {
+      long currentEnd = currentStart + chunkStep;
 
-		long currentStart = 0;
-		List<Long> chunks = new LinkedList<Long>();
+      final int fileIndex = getFileForPosition(currentEnd, fileStarts);
+      File f = fastqs.get(fileIndex);
 
-		for (int chunk = 0; chunk < maxChunks; chunk++) {
-			long currentEnd = currentStart + chunkStep;
+      final long previous = currentEnd - fileStarts.get(fileIndex);
+      currentEnd = adjustPos(f, previous) + fileStarts.get(fileIndex);
+      // System.out.println("adjusted "+f+" from "+previous+" to "+currentEnd);
 
-			final int fileIndex = getFileForPosition(currentEnd, fileStarts);
-			File f = fastqs.get(fileIndex);
+      chunks.add(currentEnd);
+      currentStart = currentEnd + 1;
 
+      if (currentEnd == totalLength - 1) {
+        break;
+      }
+    }
 
-			final long previous = currentEnd - fileStarts.get(fileIndex);
-			currentEnd = adjustPos(f, previous) + fileStarts.get(fileIndex);
-			//System.out.println("adjusted "+f+" from "+previous+" to "+currentEnd);
+    currentStart = 0;
+    final List<BufferedReader> toret = new LinkedList<BufferedReader>();
+    for (Long end : chunks) {
+      final InputStream is = new FileSequenceInputStream(fastqs, end, currentStart);
 
+      toret.add(new BufferedReader(new InputStreamReader(is)));
+      currentStart = end;
+    }
 
-			chunks.add(currentEnd);
-			currentStart = currentEnd + 1;
+    return toret;
 
-			if (currentEnd == totalLength - 1) {
-				break;
-			}
-		}
+  }
 
-		currentStart = 0;
-		final List<BufferedReader> toret = new LinkedList<BufferedReader>();
-		for (Long end : chunks) {
-			final InputStream is = new FileSequenceInputStream(fastqs, end, currentStart);
+  private static long adjustPos(File f, long skip) throws IOException {
+    // find the next sequence start after the skip-th byte in f
+    try (InputStream is = new FileInputStream(f)) {
+      is.skip(skip);
+      byte bytes[] = new byte[1024]; // chunk big enough
+      int readed;
+      if ((readed = is.read(bytes)) != -1) {
+        // find @
+        String s = new String(bytes, 0, readed);
 
-			toret.add(new BufferedReader(new InputStreamReader(is)));
-			currentStart = end;
-		}
+        int index = -1;
+        if ((index = s.indexOf("\n@")) != -1) {
 
-		return toret;
+          // are we in a sequence name line, or in a quality
+          // string which starts with @? if we are in the sequence name line,
+          // after two eols we must
+          // find a'+' char if not, we must skip this quality line
 
-	}
+          String[] tokens = s.substring(index + 1).split("\n", 3);
 
+          if (tokens.length < 3) {
+            // we could not get three additional lines
 
-	private static long adjustPos(File f, long skip) throws IOException {
-		//long previous = skip;
+            // is it because we are in the end of the file? If so, we are in the
+            // last sequence, return the end of file
+            if (skip + index + s.substring(index + 1).length() == f.length() - 1) {
+              return f.length();
+            } else {
+              throw new RuntimeException(
+                "cant find 3 \\n chars in fastq, which is expected in the readed buffer. Buffer is: " + s);
+                }
+                }
 
-		// find the next @ after the skip-th byte in f
-		InputStream is = new FileInputStream(f);
-		is.skip(skip);
-		byte bytes[] = new byte[1024]; //chunk big enough 
-		int readed;
-		while ((readed = is.read(bytes)) != -1) {
-			//find @
-			String s = new String(bytes, 0, readed);
+          if (tokens[2].startsWith("+")) {
+            // We found the next sequence at skip + index + 1
+            return skip + index + 1;
+          } else {
+            // We are in a quality string which starts with @, we need to find
+            // the end of this quality string
+            int index2 = s.substring(index + 1).indexOf('\n');
+            if (index2 == -1) {
+              throw new RuntimeException(
+                "cant find \\n char in fastq, which is expected in the readed " +
+                  "buffer. Buffer is: " + s
+                  );
+                  }
+                  return skip + index + 1 + index2 + 1;
+          }
+        }
+      }
+      return f.length();
+    }
+  }
 
-			int index = -1;
-			while ((index = s.indexOf("\n@")) != -1) {
-				//are we in a sequence name line, or in the middle of the quality string?
-				//if we are in the sequence name line, after two eols we must find a '+' char
-				//if not, we must skip this quality line
-
-				String[] tokens = s.substring(index + 1).split("\n", 3);
-
-				if (tokens.length < 3) {
-					throw new RuntimeException("cant find 3 \\n chars in fastq, which is expected in the readed buffer" +
-							". Buffer is: " + s);
-				}
-				if (tokens[2].startsWith("+")) {
-					return skip + index + 1;
-				} else {
-					int index2 = s.substring(index + 1).indexOf('\n');
-					if (index2 == -1) {
-						throw new RuntimeException("cant find \\n char in fastq, which is expected in the readed " +
-								"buffer. Buffer is: " + s);
-					}
-					return skip + index + 1 + index2;
-				}
-			}
-		}
-		return f.length();
-	}
-
-	private static int getFileForPosition(long currentEnd, List<Long> fileStarts) {
-		//System.out.println(fileStarts);
-		int i = 0;
-		while (i < fileStarts.size() && fileStarts.get(i) <= currentEnd) {
-			i++;
-		}
-		return i - 1;
-	}
-
-	public static void main(String[] args) throws IOException {
-		File f1 = File.createTempFile("fastqexample", ".fastq");
-		f1.deleteOnExit();
-		System.out.println("f1: " + f1);
-		PrintStream ps1 = new PrintStream(new FileOutputStream(f1));
-
-		File f2 = File.createTempFile("fastqexample", ".fastq");
-		f2.deleteOnExit();
-		PrintStream ps2 = new PrintStream(new FileOutputStream(f2));
-		System.out.println("f2: " + f2);
-
-		File f3 = File.createTempFile("fastqexample", ".fastq");
-		f3.deleteOnExit();
-		PrintStream ps3 = new PrintStream(new FileOutputStream(f3));
-		System.out.println("f3: " + f3);
-
-		ps1.println("@sequence1name\nsequence1\n+a\nquality1\n@sequence2name\nsequence2\n+\nquality2");
-		ps2.println("@sequence3name\nsequence3\n+\nquality3");
-		ps3.println("@sequence4name\nsequence4\n+\nquality4\n@sequence5name\nsequence5\n+\nquality5");
-
-		ps1.close();
-		ps2.close();
-		ps3.close();
-
-		List<BufferedReader> iss = splitfastq(Arrays.asList(new File[]{f1, f2, f3}), 2);
-
-		for (BufferedReader is : iss) {
-			System.out.println("New input stream\n---------------");
-
-			String line = null;
-			while ((line = is.readLine()) != null) {
-				System.out.println(line);
-			}
-		}
-		System.out.println("****************************");
-		iss = splitfastq(Arrays.asList(new File[]{f1, f2, f3}), 20);
-
-		for (BufferedReader is : iss) {
-			System.out.println("New input stream\n---------------");
-			String line = null;
-			while ((line = is.readLine()) != null) {
-				System.out.println(line);
-			}
-		}
-
-		System.out.println("****************************");
-		iss = splitfastq(Arrays.asList(new File[]{f1, f2, f3}), 1);
-
-		for (BufferedReader is : iss) {
-			System.out.println("New input stream\n---------------");
-			String line = null;
-			while ((line = is.readLine()) != null) {
-				System.out.println(line);
-			}
-		}
-
-		System.out.println("****************************");
-
-		InputStream is = new FileSequenceInputStream(Arrays.asList(new File[]{f1, f2, f3}), 125, 0);
-		System.out.println("Last input stream\n---------------");
-		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-		String line = null;
-		while ((line = reader.readLine()) != null) {
-
-			System.out.println("line: " + line);
-		}
-
-	}
-
+  private static int getFileForPosition(long currentEnd, List<Long> fileStarts) {
+    // System.out.println(fileStarts);
+    int i = 0;
+    while (i < fileStarts.size() && fileStarts.get(i) <= currentEnd) {
+      i++;
+    }
+    return i - 1;
+  }
 
 }
