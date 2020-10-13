@@ -14,7 +14,7 @@
 		<apache.math.version>3.6</apache.math.version>
 		<sing.math.version>0.1-SNAPSHOT</sing.math.version>
 
-		<junit.version>4.12</junit.version>
+		<junit.version>4.13.1</junit.version>
 		<easymock.version>3.4</easymock.version>
 		<maven-assembly-plugin.version>2.2</maven-assembly-plugin.version>
 
